@@ -224,12 +224,15 @@ def speech_events() -> list[dict[str, str]]:
     events = []
     for line in journal("voice", 180):
         if not any(marker in line for marker in ("trascrizione", "wake phrase", "risposta:",
-                                                  "comando scartato", "sessione chiusa")):
+                                                  "comando accettato", "comando scartato",
+                                                  "sessione chiusa")):
             continue
         message = line.split(": ", 1)[-1]
         kind = "parola"
         if "risposta:" in message:
             kind = "risposta"
+        elif "comando accettato" in message:
+            kind = "comando"
         elif "scartato" in message:
             kind = "scartato"
         elif "wake phrase" in message:

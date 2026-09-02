@@ -33,14 +33,17 @@ class FakeResponse:
 
 class QuickWinTests(unittest.TestCase):
     def test_profiles_are_bounded_and_automatic(self):
-        fast = assistant.response_profile("Ciao, come stai?")
+        normal = assistant.response_profile("Ciao, come stai?")
+        fast = assistant.response_profile("Modalità rapida: dimmi soltanto ciao")
         deep = assistant.response_profile("Analizza e confronta le due alternative")
         forced = assistant.response_profile("Non analizzare, rispondi brevemente")
+        self.assertEqual(normal["id"], "normal")
         self.assertEqual(fast["id"], "fast")
         self.assertEqual(deep["id"], "reasoned")
         self.assertEqual(forced["id"], "fast")
+        self.assertEqual(normal["max_tokens"], 700)
         self.assertLessEqual(fast["max_tokens"], 160)
-        self.assertLessEqual(deep["max_tokens"], 240)
+        self.assertLessEqual(deep["max_tokens"], 320)
 
     def test_voice_budget_is_smaller(self):
         self.assertLess(
@@ -54,8 +57,8 @@ class QuickWinTests(unittest.TestCase):
             for index in range(20)
         ]
         compact = assistant.compact_history(history)
-        self.assertLessEqual(len(compact), 8)
-        self.assertLessEqual(sum(len(item["content"]) for item in compact), 6000)
+        self.assertLessEqual(len(compact), 10)
+        self.assertLessEqual(sum(len(item["content"]) for item in compact), 16000)
 
     def test_llama_sse_hides_reasoning_and_usage_chunks(self):
         lines = [
@@ -79,8 +82,23 @@ class QuickWinTests(unittest.TestCase):
         self.assertEqual(text, "Ciaò")
         self.assertTrue(captured["stream"])
         self.assertTrue(captured["cache_prompt"])
-        self.assertFalse(captured["chat_template_kwargs"]["enable_thinking"])
-        self.assertEqual(captured["reasoning_budget_tokens"], 0)
+        self.assertNotIn("chat_template_kwargs", captured)
+        self.assertNotIn("reasoning_budget_tokens", captured)
+
+    def test_reasoned_profile_enables_thinking_only_for_that_request(self):
+        captured = {}
+
+        def fake_open(request, timeout):
+            captured.update(json.loads(request.data))
+            return FakeResponse([b'data: [DONE]\n'])
+
+        with mock.patch.object(assistant.urllib.request, "urlopen", fake_open):
+            list(assistant.llama_deltas(
+                [{"role": "user", "content": "confronta"}], 320,
+                assistant.response_profile("Analizza e confronta"),
+            ))
+        self.assertTrue(captured["chat_template_kwargs"]["enable_thinking"])
+        self.assertEqual(captured["reasoning_budget_tokens"], 96)
 
     def test_direct_answer_is_emitted_progressively(self):
         def fake_deltas(*_args, **_kwargs):
@@ -92,7 +110,7 @@ class QuickWinTests(unittest.TestCase):
             result = assistant.chat("Saluta", [], emit=deltas.append)
         self.assertEqual(deltas, ["Ciao", " Peppe"])
         self.assertEqual(result["answer"], "Ciao Peppe")
-        self.assertEqual(result["profile"], "fast")
+        self.assertEqual(result["profile"], "normal")
 
     def test_tool_json_is_never_emitted(self):
         calls = []
@@ -126,6 +144,8 @@ class QuickWinTests(unittest.TestCase):
     def test_ui_uses_ndjson_stream(self):
         self.assertIn("stream:true", assistant.INDEX)
         self.assertIn("TextDecoder", assistant.INDEX)
+        self.assertIn("{message:t,history:h,stream:true}", assistant.INDEX)
+        self.assertNotIn("{message:t,history:h,voice,stream:true}", assistant.INDEX)
         control_text = Path(__file__).with_name("control.py").read_text()
         self.assertIn("application/x-ndjson", control_text)
         self.assertIn("chatRunning", control_text)

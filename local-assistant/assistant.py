@@ -69,7 +69,7 @@ def run(argv: list[str], timeout: int = 15) -> tuple[int, str]:
 
 
 def response_profile(user_text: str, voice: bool = False) -> dict:
-    """Sceglie un budget rapido o ragionato senza cambiare il prompt di sistema."""
+    """Mantiene il comportamento completo, accelerando solo su richiesta esplicita."""
     text = re.sub(r"\s+", " ", user_text.lower()).strip()
     force_fast = re.search(
         r"\b(?:modalità rapida|risposta rapida|rispondi (?:solo|soltanto|brevemente)|"
@@ -86,21 +86,28 @@ def response_profile(user_text: str, voice: bool = False) -> dict:
     if reasoned:
         return {
             "id": "reasoned", "label": "Ragionata",
-            "max_tokens": 160 if voice else 240,
+            "max_tokens": 220 if voice else 320,
             "reasoning_budget": 48 if voice else 96,
             "enable_thinking": True,
         }
+    if force_fast:
+        return {
+            "id": "fast", "label": "Rapida",
+            "max_tokens": 96 if voice else 160,
+            "reasoning_budget": 0,
+            "enable_thinking": False,
+        }
     return {
-        "id": "fast", "label": "Rapida",
-        "max_tokens": 96 if voice else 160,
+        "id": "normal", "label": "Normale",
+        "max_tokens": 180 if voice else 700,
         "reasoning_budget": 0,
         "enable_thinking": False,
     }
 
 
-def compact_history(history: list[dict], max_messages: int = 8,
-                    max_chars: int = 6000) -> list[dict]:
-    """Conserva i turni più recenti entro un budget piccolo e prevedibile."""
+def compact_history(history: list[dict], max_messages: int = 10,
+                    max_chars: int = 16000) -> list[dict]:
+    """Conserva il contesto recente entro il limite da 8192 token del modello."""
     if not isinstance(history, list):
         return []
     selected: list[dict] = []
@@ -114,7 +121,7 @@ def compact_history(history: list[dict], max_messages: int = 8,
         content = content.strip()
         if not content or remaining <= 0:
             continue
-        content = content[:min(1800, remaining)]
+        content = content[:min(5000, remaining)]
         selected.append({"role": role, "content": content})
         remaining -= len(content)
     return list(reversed(selected))
@@ -134,14 +141,12 @@ def llama_deltas(messages: list[dict], max_tokens: int,
         "stream": True,
         "stream_options": {"include_usage": True},
         "cache_prompt": True,
-        "reasoning_effort": "medium" if profile.get("enable_thinking") else "none",
-        "reasoning_budget_tokens": profile.get("reasoning_budget", 0),
-        "reasoning_format": "deepseek",
-        "chat_template_kwargs": {
-            "enable_thinking": bool(profile.get("enable_thinking")),
-        },
     }
     if profile.get("reasoning_budget", 0):
+        request_data["reasoning_budget_tokens"] = profile["reasoning_budget"]
+        request_data["reasoning_format"] = "deepseek"
+        request_data["chat_template_kwargs"] = {"enable_thinking": True}
+        request_data["reasoning_effort"] = "medium"
         request_data["reasoning_budget_message"] = (
             "Ora formula la risposta finale in modo chiaro e conciso."
         )
@@ -567,7 +572,7 @@ def web_research(user_text: str, query: str, voice: bool) -> dict:
     )
     profile = response_profile(user_text, voice)
     answer = llama([{"role": "system", "content": "Sei un sintetizzatore locale prudente di fonti web."},
-                    {"role": "user", "content": prompt}], 160 if voice else 240, profile)
+                    {"role": "user", "content": prompt}], 200 if voice else 420, profile)
     sources = [{"title": page["title"], "url": page["url"]} for page in pages]
     return {"answer": answer, "open_url": browser_url(query), "sources": sources,
             "tools": [{"tool": "web_research",
@@ -695,7 +700,7 @@ button,a.nav{font:inherit;border:0;border-radius:10px;padding:10px 14px;margin:8
 <script>let history=[],last='',voice=true,rec,chunks=[],sending=false; const chat=document.querySelector('#chat'),input=document.querySelector('#input'),mode=document.querySelector('#mode');
 function add(c,t){let d=document.createElement('div');d.className='m '+c;d.textContent=t;chat.appendChild(d);scrollTo(0,document.body.scrollHeight);return d}
 async function ndjson(url,payload,onEvent){let r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});if(!r.ok){let j=await r.json().catch(()=>({}));throw Error(j.error||'Servizio non raggiungibile')}let reader=r.body.getReader(),decoder=new TextDecoder(),buffer='';while(true){let x=await reader.read();buffer+=decoder.decode(x.value||new Uint8Array(),{stream:!x.done});let lines=buffer.split('\n');buffer=lines.pop();for(let line of lines){if(line.trim())onEvent(JSON.parse(line))}if(x.done)break}if(buffer.trim())onEvent(JSON.parse(buffer))}
-async function send(){let t=input.value.trim();if(!t||sending)return;sending=true;input.value='';add('u',t);let h=[...history];history.push({role:'user',content:t});let bubble=add('a',''),done=null;mode.textContent='Peppe sta pensando…';try{await ndjson('/api/chat',{message:t,history:h,voice,stream:true},e=>{if(e.type==='meta')mode.textContent='Modalità '+e.profile_label.toLowerCase();else if(e.type==='delta'){bubble.textContent+=e.text;scrollTo(0,document.body.scrollHeight)}else if(e.type==='done')done=e;else if(e.type==='error')throw Error(e.error)});done=done||{};last=done.answer||bubble.textContent||done.error||'Nessuna risposta';bubble.textContent=last;history.push({role:'assistant',content:last});mode.textContent=(done.profile_label||'Risposta')+' · '+((done.elapsed_ms||0)/1000).toFixed(1)+' s';if(done.open_url)window.open(done.open_url,'_blank','noopener');if(voice&&done.answer)say(last)}catch(e){bubble.textContent='Errore: '+e.message;mode.textContent='Non raggiungibile'}finally{sending=false}}
+async function send(){let t=input.value.trim();if(!t||sending)return;sending=true;input.value='';add('u',t);let h=[...history];history.push({role:'user',content:t});let bubble=add('a',''),done=null;mode.textContent='Peppe sta pensando…';try{await ndjson('/api/chat',{message:t,history:h,stream:true},e=>{if(e.type==='meta')mode.textContent='Modalità '+e.profile_label.toLowerCase();else if(e.type==='delta'){bubble.textContent+=e.text;scrollTo(0,document.body.scrollHeight)}else if(e.type==='done')done=e;else if(e.type==='error')throw Error(e.error)});done=done||{};last=done.answer||bubble.textContent||done.error||'Nessuna risposta';bubble.textContent=last;history.push({role:'assistant',content:last});mode.textContent=(done.profile_label||'Risposta')+' · '+((done.elapsed_ms||0)/1000).toFixed(1)+' s';if(done.open_url)window.open(done.open_url,'_blank','noopener');if(voice&&done.answer)say(last)}catch(e){bubble.textContent='Errore: '+e.message;mode.textContent='Non raggiungibile'}finally{sending=false}}
 async function say(t){let r=await fetch('/api/speak',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:t})});if(r.ok)new Audio(URL.createObjectURL(await r.blob())).play()}
 document.querySelector('#send').onclick=send; input.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};
 document.querySelector('#speak').onclick=e=>{voice=!voice;e.target.textContent='🔊 Voce: '+(voice?'sì':'no')};

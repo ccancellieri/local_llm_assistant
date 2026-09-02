@@ -92,7 +92,11 @@ def select_command(whisper_text: str, vosk_text: str) -> tuple[str, float]:
     a, b = normalize(whisper_command), normalize(vosk_command)
     if len(a.split()) < 2 or len(b.split()) < 2:
         return "", 0.0
-    score = difflib.SequenceMatcher(None, a, b).ratio()
+    # Whisper a volte ripete l'intera frase (anche tre volte). Se la frase
+    # breve di Vosk è contenuta integralmente nella trascrizione lunga, i due
+    # riconoscitori hanno comunque concordato sul comando.
+    contained = f" {a} " in f" {b} " or f" {b} " in f" {a} "
+    score = 1.0 if contained else difflib.SequenceMatcher(None, a, b).ratio()
     if score < 0.42:
         return "", score
     # Il filtro WebRTC del portatile conserva molto bene le parole per Vosk;
@@ -349,6 +353,7 @@ def main() -> None:
                 active_until = max(active_until, time.monotonic() + 7)
                 speak("Non ho capito. Ripeti più vicino al portatile.")
                 continue
+            log(f"comando accettato: {command!r}; accordo={agreement:.2f}")
             response = api_json("/api/chat", {
                 "message": command, "history": history, "voice": True})
             answer = str(response.get("answer") or response.get("error") or
