@@ -8,6 +8,10 @@ La precedente pagina dedicata dell'assistente resta disponibile su
 Componenti:
 
 - Qwen3 4B Q4_K_M su llama.cpp/Vulkan e NVIDIA MX250, con contesto da 8192 token;
+- risposte mostrate in streaming e selezione automatica tra modalità **Rapida**
+  (nessun thinking, 160 token) e **Ragionata** (thinking separato, 240 token);
+- cache del prefisso attiva e cronologia recente compattata, per ridurre il
+  tempo prima della risposta e lasciare più memoria al modello;
 - Vosk italiano per “Peppe” e “Peppe basta”, Whisper base per i comandi;
 - acquisizione always-on dal DSP Intel `DMIC16kHz` nativo;
 - Piper `it_IT-paola-medium` per il feedback vocale;
@@ -32,6 +36,13 @@ La console diagnostica mostra stato e memoria dei componenti, modello e
 versione del motore, contesto, CPU, RAM, swap, disco e VRAM. Le trascrizioni e
 i log recenti sono caricati soltanto su richiesta. Le risorse si aggiornano
 ogni 10 secondi solo quando la pagina è visibile; la GPU al massimo ogni 15.
+
+Il testo compare mentre viene generato. Peppe usa normalmente la modalità
+**Rapida**; passa a **Ragionata** quando la richiesta contiene indicazioni come
+“analizza”, “confronta”, “valuta”, “ragiona” o “passo per passo”. Si può forzare
+una risposta breve scrivendo “modalità rapida”. Il ragionamento interno non
+viene mostrato né letto dalla voce. Entrambi i profili hanno un limite compatto
+per mantenere la risposta entro circa 20 secondi sull'hardware di riferimento.
 
 Esempi:
 

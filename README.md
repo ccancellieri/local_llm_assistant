@@ -7,6 +7,8 @@ speech synthesis, system tools, and a low-overhead web console.
 ## Features
 
 - local LLM inference through `llama.cpp`;
+- progressive NDJSON response streaming with adaptive fast/reasoned profiles;
+- bounded conversation history and prompt-prefix caching for low latency;
 - Italian wake-word and voice-command support;
 - optional local text-to-speech feedback;
 - an integrated console for chat, recognized speech, logs, model details, and

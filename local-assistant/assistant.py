@@ -13,6 +13,7 @@ import socket
 import subprocess
 import tempfile
 import datetime
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -67,15 +68,108 @@ def run(argv: list[str], timeout: int = 15) -> tuple[int, str]:
         return 1, str(exc)
 
 
-def llama(messages: list[dict], max_tokens: int = 700) -> str:
-    payload = json.dumps({
-        "model": LLAMA_MODEL, "messages": messages,
-        "temperature": 0.2, "max_tokens": max_tokens, "stream": False,
-    }).encode()
+def response_profile(user_text: str, voice: bool = False) -> dict:
+    """Sceglie un budget rapido o ragionato senza cambiare il prompt di sistema."""
+    text = re.sub(r"\s+", " ", user_text.lower()).strip()
+    force_fast = re.search(
+        r"\b(?:modalità rapida|risposta rapida|rispondi (?:solo|soltanto|brevemente)|"
+        r"senza spiegazioni|in una frase|non analizzare)\b",
+        text,
+    )
+    needs_reasoning = re.search(
+        r"\b(?:ragion\w*|analizz\w*|confront\w*|valut\w*|pianific\w*|"
+        r"approfond\w*|dimostr\w*|diagnostic\w*|ottimizz\w*|strateg\w*|"
+        r"pro e contro|passo per passo|migliore|meglio|vantaggi|svantaggi|differenze)\b",
+        text,
+    )
+    reasoned = bool(needs_reasoning and not force_fast)
+    if reasoned:
+        return {
+            "id": "reasoned", "label": "Ragionata",
+            "max_tokens": 160 if voice else 240,
+            "reasoning_budget": 48 if voice else 96,
+            "enable_thinking": True,
+        }
+    return {
+        "id": "fast", "label": "Rapida",
+        "max_tokens": 96 if voice else 160,
+        "reasoning_budget": 0,
+        "enable_thinking": False,
+    }
+
+
+def compact_history(history: list[dict], max_messages: int = 8,
+                    max_chars: int = 6000) -> list[dict]:
+    """Conserva i turni più recenti entro un budget piccolo e prevedibile."""
+    if not isinstance(history, list):
+        return []
+    selected: list[dict] = []
+    remaining = max_chars
+    for item in reversed(history[-max_messages:]):
+        if not isinstance(item, dict):
+            continue
+        role, content = item.get("role"), item.get("content")
+        if role not in ("user", "assistant") or not isinstance(content, str):
+            continue
+        content = content.strip()
+        if not content or remaining <= 0:
+            continue
+        content = content[:min(1800, remaining)]
+        selected.append({"role": role, "content": content})
+        remaining -= len(content)
+    return list(reversed(selected))
+
+
+def llama_deltas(messages: list[dict], max_tokens: int,
+                 profile: dict | None = None):
+    """Restituisce i soli frammenti della risposta, nascondendo il ragionamento interno."""
+    profile = profile or {
+        "enable_thinking": False, "reasoning_budget": 0,
+    }
+    request_data = {
+        "model": LLAMA_MODEL,
+        "messages": messages,
+        "temperature": 0.2,
+        "max_tokens": max_tokens,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+        "cache_prompt": True,
+        "reasoning_effort": "medium" if profile.get("enable_thinking") else "none",
+        "reasoning_budget_tokens": profile.get("reasoning_budget", 0),
+        "reasoning_format": "deepseek",
+        "chat_template_kwargs": {
+            "enable_thinking": bool(profile.get("enable_thinking")),
+        },
+    }
+    if profile.get("reasoning_budget", 0):
+        request_data["reasoning_budget_message"] = (
+            "Ora formula la risposta finale in modo chiaro e conciso."
+        )
+    payload = json.dumps(request_data).encode()
     req = urllib.request.Request(LLAMA_URL, payload, {"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=180) as response:
-        data = json.load(response)
-    return data["choices"][0]["message"]["content"].strip()
+        for raw_line in response:
+            line = raw_line.decode("utf-8", "replace").strip()
+            if not line or line.startswith(":"):
+                continue
+            if line.startswith("data:"):
+                line = line[5:].strip()
+            if line == "[DONE]":
+                break
+            try:
+                data = json.loads(line)
+                choice = (data.get("choices") or [{}])[0]
+                delta = choice.get("delta") or {}
+                text = delta.get("content", choice.get("text", ""))
+            except (AttributeError, IndexError, json.JSONDecodeError):
+                continue
+            if isinstance(text, str) and text:
+                yield text
+
+
+def llama(messages: list[dict], max_tokens: int = 700,
+          profile: dict | None = None) -> str:
+    return "".join(llama_deltas(messages, max_tokens, profile)).strip()
 
 
 class SearchParser(__import__("html.parser").parser.HTMLParser):
@@ -471,8 +565,9 @@ def web_research(user_text: str, query: str, voice: bool) -> dict:
         + ("Usa al massimo quattro frasi concise. " if voice else "Sii chiaro e conciso. ")
         + f"\nDOMANDA: {user_text[:1000]}\n\n{evidence}"
     )
+    profile = response_profile(user_text, voice)
     answer = llama([{"role": "system", "content": "Sei un sintetizzatore locale prudente di fonti web."},
-                    {"role": "user", "content": prompt}], 200 if voice else 420)
+                    {"role": "user", "content": prompt}], 160 if voice else 240, profile)
     sources = [{"title": page["title"], "url": page["url"]} for page in pages]
     return {"answer": answer, "open_url": browser_url(query), "sources": sources,
             "tools": [{"tool": "web_research",
@@ -501,47 +596,90 @@ def fast_voice_intent(user_text: str) -> dict | None:
     return None
 
 
-def chat(user_text: str, history: list[dict], voice: bool = False) -> dict:
+def chat(user_text: str, history: list[dict], voice: bool = False, emit=None) -> dict:
+    started = time.monotonic()
+    profile = response_profile(user_text, voice)
+
+    def finish(result: dict) -> dict:
+        result["profile"] = profile["id"]
+        result["profile_label"] = profile["label"]
+        result["elapsed_ms"] = round((time.monotonic() - started) * 1000)
+        print(f"chat profile={profile['id']} elapsed_ms={result['elapsed_ms']} "
+              f"tools={len(result.get('tools') or [])}", flush=True)
+        return result
+
     research = research_query(user_text)
     if research:
         try:
-            return web_research(user_text, research, voice)
+            return finish(web_research(user_text, research, voice))
         except Exception as exc:
-            return {"answer": "Ho aperto la ricerca, ma la lettura delle fonti non è riuscita.",
-                    "open_url": browser_url(research),
-                    "tools": [{"tool": "web_research", "result": {"error": str(exc)}}]}
+            return finish({
+                "answer": "Ho aperto la ricerca, ma la lettura delle fonti non è riuscita.",
+                "open_url": browser_url(research),
+                "tools": [{"tool": "web_research", "result": {"error": str(exc)}}],
+            })
     browser_search = browser_search_intent(user_text)
     if browser_search:
-        return browser_search
+        return finish(browser_search)
     if voice:
         immediate = fast_voice_intent(user_text)
         if immediate:
-            return immediate
-    clean_history = []
-    for item in history[-10:]:
-        if item.get("role") in ("user", "assistant") and isinstance(item.get("content"), str):
-            clean_history.append({"role": item["role"], "content": item["content"][:5000]})
+            return finish(immediate)
+    clean_history = compact_history(history)
     system_prompt = SYSTEM_PROMPT
     if voice:
         system_prompt += "\nMODALITÀ VOCALE: rispondi in massimo due frasi brevi, senza preamboli."
     messages = [{"role": "system", "content": system_prompt}, *clean_history,
                 {"role": "user", "content": user_text[:5000]}]
-    used = []
+    used: list[dict] = []
+    seen_calls: set[str] = set()
     for _ in range(2 if voice else 3):
-        answer = llama(messages, 180 if voice else 700)
+        answer_parts: list[str] = []
+        buffered = ""
+        direct_answer = False
+        for delta in llama_deltas(messages, profile["max_tokens"], profile):
+            answer_parts.append(delta)
+            if emit is None:
+                continue
+            if direct_answer:
+                emit(delta)
+                continue
+            buffered += delta
+            significant = buffered.lstrip()
+            if significant and significant[0] not in ("{", "`"):
+                direct_answer = True
+                emit(buffered)
+                buffered = ""
+        answer = "".join(answer_parts).strip()
         call = parse_tool(answer)
         if not call:
-            return {"answer": answer, "tools": used}
-        try:
-            result = execute_tool(call["tool"], call.get("args") or {})
-        except Exception as exc:
-            result = {"ok": False, "error": str(exc)}
+            if emit is not None and not direct_answer and answer:
+                emit(answer)
+            if not answer and profile["enable_thinking"]:
+                # Un budget di ragionamento esaurito non deve produrre una bolla vuota.
+                profile = response_profile("modalità rapida", voice)
+                continue
+            return finish({"answer": answer or "Non ho prodotto una risposta.", "tools": used})
+        args = call.get("args")
+        if not isinstance(args, dict):
+            args = {}
+        fingerprint = json.dumps({"tool": call["tool"], "args": args},
+                                 sort_keys=True, ensure_ascii=False)
+        if fingerprint in seen_calls:
+            result = {"ok": False, "error": "chiamata duplicata bloccata"}
+        else:
+            seen_calls.add(fingerprint)
+            try:
+                result = execute_tool(call["tool"], args)
+            except Exception as exc:
+                result = {"ok": False, "error": str(exc)}
         used.append({"tool": call["tool"], "result": result})
         messages.extend([
             {"role": "assistant", "content": answer},
             {"role": "user", "content": "RISULTATO_STRUMENTO: " + json.dumps(result, ensure_ascii=False)},
         ])
-    return {"answer": "Non sono riuscito a completare l'azione in sicurezza.", "tools": used}
+    return finish({"answer": "Non sono riuscito a completare l'azione in sicurezza.",
+                   "tools": used})
 
 
 INDEX = r'''<!doctype html><html lang="it"><head><meta charset="utf-8">
@@ -551,13 +689,13 @@ h1{font-size:1.5rem}.box{background:#1f2937;border-radius:14px;padding:18px;marg
 #chat{min-height:45vh}.m{margin:10px 0;padding:10px 13px;border-radius:12px;white-space:pre-wrap}
 .u{background:#1d4ed8;margin-left:15%}.a{background:#374151;margin-right:10%}textarea{box-sizing:border-box;width:100%;min-height:75px;background:#111827;color:white;border:1px solid #64748b;border-radius:10px;padding:10px}
 button,a.nav{font:inherit;border:0;border-radius:10px;padding:10px 14px;margin:8px 5px 0 0;background:#10b981;color:#052e25;cursor:pointer;text-decoration:none;display:inline-block}button.alt,a.nav{background:#60a5fa;color:#10213c}small{color:#9ca3af}.head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}</style></head>
-<body><div class="head"><div><h1>Assistente AI locale</h1><small>Qwen + llama.cpp · Whisper · Piper · nessun LLM esterno</small></div><a class="nav" href="http://127.0.0.1:8091/">← Console Peppe</a></div>
+<body><div class="head"><div><h1>Assistente AI locale</h1><small>Qwen + llama.cpp · Whisper · Piper · nessun LLM esterno</small></div><div><small id="mode">Pronto</small> <a class="nav" href="http://127.0.0.1:8091/">← Console Peppe</a></div></div>
 <div id="chat" class="box"></div><div class="box"><textarea id="input" placeholder="Scrivi o premi il microfono…"></textarea><br>
 <button id="send">Invia</button><button id="mic" class="alt">🎙 Parla</button><button id="speak" class="alt">🔊 Voce: sì</button></div>
-<script>let history=[],last='',voice=true,rec,chunks=[]; const chat=document.querySelector('#chat'),input=document.querySelector('#input');
-function add(c,t){let d=document.createElement('div');d.className='m '+c;d.textContent=t;chat.appendChild(d);scrollTo(0,document.body.scrollHeight)}
-async function send(){let t=input.value.trim();if(!t)return;input.value='';add('u',t);let h=[...history];history.push({role:'user',content:t});
-add('a','…');let r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:t,history:h})});let j=await r.json();chat.lastChild.remove();last=j.answer||j.error;add('a',last);history.push({role:'assistant',content:last});if(j.open_url)window.open(j.open_url,'_blank','noopener');if(voice&&j.answer)say(last)}
+<script>let history=[],last='',voice=true,rec,chunks=[],sending=false; const chat=document.querySelector('#chat'),input=document.querySelector('#input'),mode=document.querySelector('#mode');
+function add(c,t){let d=document.createElement('div');d.className='m '+c;d.textContent=t;chat.appendChild(d);scrollTo(0,document.body.scrollHeight);return d}
+async function ndjson(url,payload,onEvent){let r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});if(!r.ok){let j=await r.json().catch(()=>({}));throw Error(j.error||'Servizio non raggiungibile')}let reader=r.body.getReader(),decoder=new TextDecoder(),buffer='';while(true){let x=await reader.read();buffer+=decoder.decode(x.value||new Uint8Array(),{stream:!x.done});let lines=buffer.split('\n');buffer=lines.pop();for(let line of lines){if(line.trim())onEvent(JSON.parse(line))}if(x.done)break}if(buffer.trim())onEvent(JSON.parse(buffer))}
+async function send(){let t=input.value.trim();if(!t||sending)return;sending=true;input.value='';add('u',t);let h=[...history];history.push({role:'user',content:t});let bubble=add('a',''),done=null;mode.textContent='Peppe sta pensando…';try{await ndjson('/api/chat',{message:t,history:h,voice,stream:true},e=>{if(e.type==='meta')mode.textContent='Modalità '+e.profile_label.toLowerCase();else if(e.type==='delta'){bubble.textContent+=e.text;scrollTo(0,document.body.scrollHeight)}else if(e.type==='done')done=e;else if(e.type==='error')throw Error(e.error)});done=done||{};last=done.answer||bubble.textContent||done.error||'Nessuna risposta';bubble.textContent=last;history.push({role:'assistant',content:last});mode.textContent=(done.profile_label||'Risposta')+' · '+((done.elapsed_ms||0)/1000).toFixed(1)+' s';if(done.open_url)window.open(done.open_url,'_blank','noopener');if(voice&&done.answer)say(last)}catch(e){bubble.textContent='Errore: '+e.message;mode.textContent='Non raggiungibile'}finally{sending=false}}
 async function say(t){let r=await fetch('/api/speak',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:t})});if(r.ok)new Audio(URL.createObjectURL(await r.blob())).play()}
 document.querySelector('#send').onclick=send; input.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};
 document.querySelector('#speak').onclick=e=>{voice=!voice;e.target.textContent='🔊 Voce: '+(voice?'sì':'no')};
@@ -577,6 +715,36 @@ class Handler(BaseHTTPRequestHandler):
 
     def json_response(self, obj, code=200):
         self.send_bytes(code, json.dumps(obj, ensure_ascii=False).encode())
+
+    def stream_chat(self, data: dict):
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-store, no-transform")
+        self.send_header("X-Accel-Buffering", "no")
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.close_connection = True
+
+        def event(payload: dict):
+            line = (json.dumps(payload, ensure_ascii=False) + "\n").encode()
+            self.wfile.write(line)
+            self.wfile.flush()
+
+        try:
+            profile = response_profile(str(data.get("message", "")), bool(data.get("voice")))
+            event({"type": "meta", "profile": profile["id"],
+                   "profile_label": profile["label"]})
+            result = chat(str(data.get("message", "")), data.get("history") or [],
+                          bool(data.get("voice")),
+                          emit=lambda text: event({"type": "delta", "text": text}))
+            event({"type": "done", **result})
+        except (BrokenPipeError, ConnectionResetError):
+            return
+        except Exception as exc:
+            try:
+                event({"type": "error", "error": str(exc)})
+            except (BrokenPipeError, ConnectionResetError):
+                pass
 
     def do_GET(self):
         if self.path == "/":
@@ -607,8 +775,11 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.path == "/api/chat":
                 data = json.loads(body)
-                self.json_response(chat(str(data.get("message", "")), data.get("history") or [],
-                                        bool(data.get("voice"))))
+                if data.get("stream") is True:
+                    self.stream_chat(data)
+                else:
+                    self.json_response(chat(str(data.get("message", "")), data.get("history") or [],
+                                            bool(data.get("voice"))))
             elif self.path == "/api/transcribe":
                 self.transcribe(body)
             elif self.path == "/api/speak":
