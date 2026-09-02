@@ -1,0 +1,19 @@
+[Unit]
+Description=Assistente AI locale (voce, strumenti e interfaccia web)
+After=local-ai-llama.service pipewire.service network-online.target
+Wants=local-ai-llama.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/share/local-ai/assistant/assistant.py
+Restart=on-failure
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.cache/spotify-player %h/.config/spotify-player
+
+[Install]
+WantedBy=default.target

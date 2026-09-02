@@ -1,0 +1,30 @@
+# Materiale sincronizzato dal progetto ChatGPT: sola consultazione.
+sources/
+AGENTS.md
+
+# Modelli e artefatti binari pesanti, scaricabili o rigenerabili.
+artifacts/
+SETUP-LOG.md
+models/*.gguf
+models/*.bin
+models/*.onnx
+models/*.zip
+
+# Cache e file temporanei Python.
+__pycache__/
+*.py[cod]
+*.log
+*.tmp
+
+# Copie locali di ripristino e file generati dall'editor.
+*.pre-*
+*~
+.DS_Store
+
+# Credenziali e configurazioni locali sensibili.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*token*.json

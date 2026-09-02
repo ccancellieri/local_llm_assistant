@@ -1,0 +1,15 @@
+[Unit]
+Description=Instradamento audio con cancellazione eco per Peppe
+After=pipewire-pulse.service
+Wants=pipewire-pulse.service
+Before=local-ai-peppe.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/share/local-ai/assistant/peppe-audio-route.sh
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

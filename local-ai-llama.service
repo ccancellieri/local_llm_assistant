@@ -1,0 +1,21 @@
+[Unit]
+Description=Peppe LLM locale - llama.cpp Qwen3 4B
+After=network.target
+ConditionPathExists=%h/.local/share/local-ai/models/Qwen3-4B-Q4_K_M.gguf
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.local/share/local-ai
+ExecStart=%h/.local/share/local-ai/llama/llama-server --model %h/.local/share/local-ai/models/Qwen3-4B-Q4_K_M.gguf --alias peppe-local --host 127.0.0.1 --port 8080 --ctx-size 8192 --threads 4 --threads-batch 4 --batch-size 512 --ubatch-size 256 --parallel 1 --n-gpu-layers 99 --device Vulkan1 --flash-attn auto --cache-type-k q8_0 --cache-type-v q8_0 --jinja --reasoning off --cors-origins localhost --no-webui --metrics
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=180
+TimeoutStopSec=30
+Nice=5
+LimitNOFILE=65535
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+
+[Install]
+WantedBy=default.target
