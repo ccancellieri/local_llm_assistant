@@ -34,8 +34,8 @@ else
 fi
 check 'Whisper installato' test -x "$HOME/.local/share/local-ai/whisper/whisper-cli"
 check 'Piper installato' test -d "$HOME/.local/share/local-ai/piper-runtime/piper"
-check 'spotify-player installato' test -x "$HOME/.local/share/local-ai/spotify/spotify_player"
-check 'Spotify autenticato' test -f "$HOME/.cache/spotify-player/user_client_token.json"
+check 'Spotify Client ID configurato' test -s "$HOME/.config/local-ai/spotify-client-id"
+check 'Spotify Connect autorizzato' test -f "$HOME/.config/local-ai/spotify-connect-token.json"
 check 'Tailscale connesso' tailscale status
 if [ "$(pactl get-default-source 2>/dev/null)" = "peppe_mic" ] \
    && [ "$(pactl get-default-sink 2>/dev/null)" = "peppe_speaker" ]; then

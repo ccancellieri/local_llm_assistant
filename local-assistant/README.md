@@ -16,7 +16,7 @@ Componenti:
 - acquisizione always-on dal DSP Intel `DMIC16kHz` nativo;
 - Piper `it_IT-paola-medium` per il feedback vocale;
 - ricerca DuckDuckGo con lettura protetta delle fonti pubbliche;
-- Spotify tramite `spotify-player` e fallback ai controlli KDE;
+- Spotify Connect tramite le API ufficiali, con la riproduzione nell'app grafica Spotify;
 - accesso remoto previsto tramite Tailscale Serve HTTPS.
 
 ## Uso
@@ -53,6 +53,26 @@ Esempi:
 - “Metti in pausa Spotify.”
 - “Quali dispositivi audio sono disponibili?”
 - “Usa il dispositivo Alexa Salotto per Spotify.”
+- “Hey Peppe, suona Ryden su Echo Plus.”
+
+## Spotify Connect
+
+Serve Spotify Premium e un'app personale nel [Developer Dashboard di Spotify](https://developer.spotify.com/dashboard).
+Nell'app, registrare esattamente il redirect URI `http://127.0.0.1:8181/callback`.
+Salvare il Client ID pubblico in `~/.config/local-ai/spotify-client-id` (una riga,
+solo l'identificativo), poi sul computer che esegue Peppe avviare:
+
+```text
+python3 ~/.local/share/local-ai/assistant/spotify_connect.py --login
+```
+
+Il browser chiede una sola autorizzazione. Peppe salva il token in
+`~/.config/local-ai/spotify-connect-token.json` con permessi 600 e lo rinnova
+automaticamente. Aprire l'app Spotify grafica e rendere visibile Echo Plus in
+Spotify Connect prima di chiedere la riproduzione. Se Echo Plus non compare o
+esistono dispositivi con lo stesso nome, Peppe non avvia il brano su un'altra
+uscita. Il Client ID può anche essere fornito con `SPOTIFY_CLIENT_ID` nel
+servizio, mantenendolo disponibile per il rinnovo del token.
 
 ## Sicurezza
 
