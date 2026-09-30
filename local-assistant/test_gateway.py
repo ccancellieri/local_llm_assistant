@@ -13,6 +13,17 @@ from test_quick_wins import assistant, FakeResponse
 
 
 class GatewayTests(unittest.TestCase):
+    def test_fast_default_limits_ordinary_answers_but_keeps_explicit_analysis(self):
+        with mock.patch.dict(os.environ, {"LOCAL_ASSISTANT_DEFAULT_PROFILE": "fast"}):
+            ordinary = assistant.response_profile("Ciao, raccontami qualcosa")
+            voice = assistant.response_profile("Ciao", voice=True)
+            analysis = assistant.response_profile("Analizza le alternative")
+        self.assertEqual(ordinary["id"], "fast")
+        self.assertEqual(ordinary["max_tokens"], 160)
+        self.assertFalse(ordinary["enable_thinking"])
+        self.assertEqual(voice["max_tokens"], 96)
+        self.assertEqual(analysis["id"], "reasoned")
+
     def test_authenticated_stream_preserves_model_and_deltas(self):
         with tempfile.TemporaryDirectory() as directory:
             key = Path(directory) / "gateway.key"

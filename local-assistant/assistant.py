@@ -70,7 +70,7 @@ def run(argv: list[str], timeout: int = 15) -> tuple[int, str]:
 
 
 def response_profile(user_text: str, voice: bool = False) -> dict:
-    """Mantiene il comportamento completo, accelerando solo su richiesta esplicita."""
+    """Applica il profilo predefinito, rispettando le richieste esplicite di analisi."""
     text = re.sub(r"\s+", " ", user_text.lower()).strip()
     force_fast = re.search(
         r"\b(?:modalità rapida|risposta rapida|rispondi (?:solo|soltanto|brevemente)|"
@@ -91,7 +91,7 @@ def response_profile(user_text: str, voice: bool = False) -> dict:
             "reasoning_budget": 48 if voice else 96,
             "enable_thinking": True,
         }
-    if force_fast:
+    if force_fast or os.environ.get("LOCAL_ASSISTANT_DEFAULT_PROFILE") == "fast":
         return {
             "id": "fast", "label": "Rapida",
             "max_tokens": 96 if voice else 160,

@@ -99,6 +99,13 @@ Environment=LOCAL_LLM_HEALTH_URL=http://127.0.0.1:20128/healthz
 Environment=LOCAL_LLM_API_KEY_FILE=%h/.config/local-ai/omniroute.key
 ```
 
+Per risposte rapide per impostazione predefinita, aggiungere
+`LOCAL_ASSISTANT_DEFAULT_PROFILE=fast` al servizio dell'assistente. Le risposte
+ordinarie hanno un limite di 160 token (96 in voce), senza richiedere ragionamento
+aggiuntivo. Le richieste esplicite di analisi conservano il profilo ragionato.
+La latenza dipende anche dalla coda del provider: questo limite non garantisce un
+tempo massimo di risposta.
+
 Quando il gateway sostituisce il modello locale, configurare anche il servizio
 della console con `LOCAL_LLM_SERVICE=omniroute.service` e lo stesso
 `LOCAL_LLM_MODEL`. I controlli e i log della console useranno il servizio gateway,
