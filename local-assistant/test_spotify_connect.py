@@ -53,6 +53,25 @@ class SpotifyConnectTests(unittest.TestCase):
                 self.assertFalse(result["ok"])
                 self.assertFalse(any(path.startswith("/me/player/play") for _, path, _ in client.calls))
 
+    def test_device_name_normalizes_whitespace_and_accepts_unique_prefix(self):
+        client = FakeClient([{"id": "echo1", "name": "Echo Plus  della cucina"}])
+        for name in ("  ECHO   PLUS della cucina ", "echo plus"):
+            with self.subTest(name=name):
+                self.assertEqual(client._device(name)["id"], "echo1")
+
+    def test_device_abbreviation_must_be_unique_and_end_at_word_boundary(self):
+        for devices, name in (
+            ([{"id": "a", "name": "Echo Plus cucina"},
+              {"id": "b", "name": "Echo Plus sala"}], "echo plus"),
+            ([{"id": "a", "name": "Echo Plus cucina"}], "echo plu"),
+            ([{"id": "a", "name": "Echo Plus cucina"}], "   "),
+            ([{"id": "a", "name": "Echo Plus cucina", "is_restricted": True}], "echo plus"),
+        ):
+            with self.subTest(devices=devices, name=name):
+                client = FakeClient(devices)
+                self.assertFalse(client.play("Ryden", "track", name)["ok"])
+                self.assertFalse(any(method == "PUT" for method, _, _ in client.calls))
+
     def test_unverified_playback_is_pending_not_success(self):
         client = FakeClient([{"id": "echo1", "name": "Echo Plus"}])
         result = client.play("Ryden", "track", "Echo Plus")

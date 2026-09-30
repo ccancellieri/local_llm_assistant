@@ -154,8 +154,15 @@ class SpotifyClient:
         return self.api("GET", "/me/player/devices").get("devices", [])
 
     def _device(self, name: str) -> dict:
-        matches = [device for device in self.devices()
-                   if device.get("name", "").casefold().strip() == name.casefold().strip()]
+        requested = " ".join(name.casefold().split())
+        if not requested:
+            raise ValueError("Nome dispositivo Spotify vuoto")
+        devices = [(device, " ".join(device.get("name", "").casefold().split()))
+                   for device in self.devices()]
+        matches = [device for device, normalized in devices if normalized == requested]
+        if not matches:
+            matches = [device for device, normalized in devices
+                       if normalized.startswith(requested + " ")]
         if len(matches) != 1 or not matches[0].get("id") or matches[0].get("is_restricted"):
             raise ValueError("Dispositivo Spotify assente, ambiguo o non controllabile")
         return matches[0]

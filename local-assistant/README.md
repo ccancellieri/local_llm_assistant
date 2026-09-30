@@ -70,8 +70,10 @@ Il browser chiede una sola autorizzazione. Peppe salva il token in
 `~/.config/local-ai/spotify-connect-token.json` con permessi 600 e lo rinnova
 automaticamente. Aprire l'app Spotify grafica e rendere visibile Echo Plus in
 Spotify Connect prima di chiedere la riproduzione. Se Echo Plus non compare o
-esistono dispositivi con lo stesso nome, Peppe non avvia il brano su un'altra
-uscita. Il Client ID può anche essere fornito con `SPOTIFY_CLIENT_ID` nel
+il nome è ambiguo, Peppe non avvia il brano su un'altra
+uscita. Maiuscole e spazi ripetuti vengono ignorati; un nome abbreviato come
+`Echo Plus` è accettato se corrisponde a un solo dispositivo per prefisso di
+parole intere. Il nome completo ha precedenza. Il Client ID può anche essere fornito con `SPOTIFY_CLIENT_ID` nel
 servizio, mantenendolo disponibile per il rinnovo del token.
 
 ## Sicurezza
