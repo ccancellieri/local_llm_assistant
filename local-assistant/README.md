@@ -59,8 +59,10 @@ Esempi:
 Il server ascolta soltanto su localhost. Il modello non dispone di una shell
 generica: può usare esclusivamente gli strumenti elencati nell'orchestratore.
 Le pagine web possono essere lette soltanto tramite HTTP/HTTPS pubblici; reti
-private, loopback e link-local sono bloccati. Nessun testo viene inviato a un
-LLM esterno. Tailscale **Serve**, non Funnel, mantiene l'interfaccia privata.
+private, loopback e link-local sono bloccati. Con il backend locale predefinito
+nessun testo viene inviato a un LLM esterno; con un provider remoto tramite
+OmniRoute si applicano le condizioni descritte sotto. Tailscale **Serve**, non
+Funnel, mantiene l'interfaccia privata ai dispositivi connessi alla stessa tailnet.
 
 ## Servizi
 
@@ -80,3 +82,40 @@ pesi dei modelli non sono inclusi nel repository.
 
 Il codice del progetto è distribuito con licenza Apache-2.0. Modelli, dataset,
 pacchetti di sistema e strumenti esterni conservano le rispettive licenze.
+
+## Backend tramite OmniRoute
+
+Peppe può usare OmniRoute conservando gli strumenti, la voce e lo streaming della
+console. Il gateway può instradare verso un provider remoto oppure verso un
+modello locale indipendente, tramite un provider compatibile OpenAI.
+
+Configurare nel servizio dell'assistente:
+
+```ini
+[Service]
+Environment=LLAMA_URL=http://127.0.0.1:20128/v1/chat/completions
+Environment=LOCAL_LLM_MODEL=provider/model
+Environment=LOCAL_LLM_HEALTH_URL=http://127.0.0.1:20128/healthz
+Environment=LOCAL_LLM_API_KEY_FILE=%h/.config/local-ai/omniroute.key
+```
+
+Quando il gateway sostituisce il modello locale, configurare anche il servizio
+della console con `LOCAL_LLM_SERVICE=omniroute.service` e lo stesso
+`LOCAL_LLM_MODEL`. I controlli e i log della console useranno il servizio gateway,
+senza tentare di avviare llama.cpp. Le metriche specifiche di llama.cpp rimarranno
+sconosciute. Disabilitare separatamente l'avvio automatico del modello locale;
+conservare la configurazione per un eventuale ripristino.
+
+Sostituire `provider/model` con l'identificativo esatto configurato nel gateway.
+Il file della chiave deve essere leggibile solo dall'utente del servizio
+(`chmod 600`); non inserire la chiave nella pagina web o nel repository.
+Un file mancante o vuoto interrompe la richiesta prima della chiamata HTTP.
+Senza queste impostazioni resta attivo il collegamento diretto a llama.cpp.
+
+Per un percorso esclusivamente locale, limitare la chiave nel gateway al modello
+e alla connessione locali, disabilitando fallback esterni e selezione automatica.
+Un provider remoto può inviare a terzi testo, cronologia e risultati degli strumenti:
+abilitarlo solo come scelta esplicita. Il controllo `/health` verifica il servizio
+configurato; la disponibilità effettiva del modello richiede anche una prova di
+generazione. Usare HTTPS se il gateway si trova su un altro dispositivo. Non
+esporre la console amministrativa direttamente su Internet.

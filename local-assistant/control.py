@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import secrets
 import shutil
@@ -21,12 +22,14 @@ HOST = "127.0.0.1"
 PORT = 8091
 TOKEN = secrets.token_urlsafe(24)
 UNITS = {
-    "llm": "local-ai-llama.service",
+    "llm": os.environ.get("LOCAL_LLM_SERVICE", "local-ai-llama.service"),
     "web": "local-ai-assistant.service",
     "voice": "local-ai-peppe.service",
     "audio": "local-ai-audio.service",
 }
 LOG_UNITS = {**UNITS, "console": "local-ai-control.service"}
+GATEWAY_BACKEND = UNITS["llm"] != "local-ai-llama.service"
+GATEWAY_MODEL = os.environ.get("LOCAL_LLM_MODEL", "")
 LLAMA_URL = "http://127.0.0.1:8080"
 ASSISTANT_URL = "http://127.0.0.1:8090"
 _cache: dict[str, tuple[float, object]] = {}
@@ -160,6 +163,9 @@ def metric(metrics: dict[str, float], *suffixes: str) -> float | None:
 
 
 def model_info(states: dict[str, dict]) -> dict:
+    if GATEWAY_BACKEND:
+        return {"file": "Backend tramite gateway", "alias": GATEWAY_MODEL,
+                "context": None, "slots": None, "version": ""}
     exec_line = states.get("llm", {}).get("exec", "")
     model_match = re.search(r"--model[= ]+([^ ;}]+)", exec_line)
     alias_match = re.search(r"--alias[= ]+([^ ;}]+)", exec_line)
@@ -189,7 +195,8 @@ def overview() -> dict:
     swap_total = memory.get("SwapTotal", 0)
     swap_free = memory.get("SwapFree", 0)
     disk = shutil.disk_usage("/")
-    metrics = cached("metrics", 10, fetch_metrics) if states["llm"]["active"] else {}
+    metrics = (cached("metrics", 10, fetch_metrics)
+               if states["llm"]["active"] and not GATEWAY_BACKEND else {})
     return {
         "timestamp": time.strftime("%H:%M:%S"),
         "services": {name: {key: value for key, value in data.items() if key != "exec"}

@@ -26,6 +26,7 @@ HOST = os.environ.get("LOCAL_ASSISTANT_HOST", "127.0.0.1")
 PORT = int(os.environ.get("LOCAL_ASSISTANT_PORT", "8090"))
 LLAMA_URL = os.environ.get("LLAMA_URL", "http://127.0.0.1:8080/v1/chat/completions")
 LLAMA_MODEL = os.environ.get("LOCAL_LLM_MODEL", "peppe-local")
+LLM_HEALTH_URL = os.environ.get("LOCAL_LLM_HEALTH_URL", "http://127.0.0.1:8080/health")
 DATA = Path.home() / ".local/share/local-ai"
 WHISPER = DATA / "whisper/whisper-cli"
 WHISPER_MODEL = DATA / "whisper/ggml-whisper-base.bin"
@@ -151,7 +152,17 @@ def llama_deltas(messages: list[dict], max_tokens: int,
             "Ora formula la risposta finale in modo chiaro e conciso."
         )
     payload = json.dumps(request_data).encode()
-    req = urllib.request.Request(LLAMA_URL, payload, {"Content-Type": "application/json"})
+    headers = {"Content-Type": "application/json"}
+    key_file = os.environ.get("LOCAL_LLM_API_KEY_FILE")
+    if key_file:
+        try:
+            api_key = Path(key_file).read_text().strip()
+        except (OSError, UnicodeError):
+            raise RuntimeError("Credenziale LLM non leggibile") from None
+        if not api_key or any(ord(char) < 33 or ord(char) > 126 for char in api_key):
+            raise RuntimeError("Credenziale LLM non valida")
+        headers["Authorization"] = f"Bearer {api_key}"
+    req = urllib.request.Request(LLAMA_URL, payload, headers)
     with urllib.request.urlopen(req, timeout=180) as response:
         for raw_line in response:
             line = raw_line.decode("utf-8", "replace").strip()
@@ -757,7 +768,7 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/health":
             llm_ok = False
             try:
-                with urllib.request.urlopen("http://127.0.0.1:8080/health", timeout=3) as response:
+                with urllib.request.urlopen(LLM_HEALTH_URL, timeout=3) as response:
                     llm_ok = response.status == 200
             except Exception:
                 pass
