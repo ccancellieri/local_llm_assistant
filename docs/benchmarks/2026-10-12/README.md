@@ -99,9 +99,10 @@ telemetry-disable flags. This is one checked execution, not a universal
 network-free guarantee. Parakeet loaded local pinned files with hub offline
 mode enabled; no cloud recognizer was used.
 
-These CPU runs do not establish CUDA performance. A separate MX250 experiment
-must verify provider availability, supported precision, CPU fallback and peak
-VRAM. Neither a small model file nor a 4 GB card guarantees faster inference.
+The subsequent [MX250 GPU qualification](parakeet-gpu/README.md) verified real
+CUDA work with CPU preprocessing and fallback. Its 1.071 s warm median and
+1.64 GiB peak host RSS were worse than this CPU configuration. Neither a small
+model file nor a 4 GB card guarantees faster inference or less host RAM.
 Parakeet's measured RAM rules out this configuration on a 512 MB Pi Zero W.
 
 ## Reproduction and artifacts

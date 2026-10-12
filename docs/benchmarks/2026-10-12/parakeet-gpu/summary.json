@@ -1,0 +1,30 @@
+{
+  "model": "istupakov/parakeet-tdt-0.6b-v3-onnx@8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce",
+  "quantization": "int8",
+  "preprocessing": "numpy_cpu",
+  "runtime": "onnxruntime-gpu 1.26.0; CUDA 12.8; cuDNN 9",
+  "providers": {
+    "_encoder": [
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    "_decoder_joint": [
+      "CUDAExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  },
+  "load_seconds": 2.7747041699985857,
+  "peak_rss_KiB": 1720816,
+  "median_seconds": 1.0710297360001277,
+  "p95_seconds": 1.610937747150092,
+  "errors_per_pass": [
+    4,
+    4,
+    4
+  ],
+  "words_per_pass": 113,
+  "command_exact": 8,
+  "command_cases": 8,
+  "command_median_seconds": 0.4023185554997326,
+  "silence": "Thank you."
+}

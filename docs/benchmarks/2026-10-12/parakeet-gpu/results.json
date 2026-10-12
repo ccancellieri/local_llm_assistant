@@ -1,0 +1,218 @@
+[
+  {
+    "run": 0,
+    "file": "fleurs_it_validation_001.wav",
+    "reference": "non appena usciti dalla corrente tornare a nuoto non risulterà più difficile del normale",
+    "text": "Non appena usciti dalla corrente, tornare a nuoto non risulterà più difficile del normale.",
+    "wall_seconds": 0.892465226999775,
+    "errors": 0,
+    "reference_words": 14
+  },
+  {
+    "run": 0,
+    "file": "fleurs_it_validation_002.wav",
+    "reference": "tutti sanno che l'argentina vanta una delle migliori squadre e i migliori giocatori di polo al mondo",
+    "text": "Tutti sanno che l'Argentina vanta una delle migliori squadre e i migliori giocatori di Polo al mondo.",
+    "wall_seconds": 0.8056483700001991,
+    "errors": 0,
+    "reference_words": 18
+  },
+  {
+    "run": 0,
+    "file": "fleurs_it_validation_003.wav",
+    "reference": "nel giro di due ore sono esplose altre tre bombe nelle vicinanze degli edifici governativi",
+    "text": "Nel giro di 2 ore sono esplose altre tre bombe nelle vicinanze degli edifici governativi.",
+    "wall_seconds": 0.7784167509998952,
+    "errors": 1,
+    "reference_words": 15
+  },
+  {
+    "run": 0,
+    "file": "fleurs_it_validation_005.wav",
+    "reference": "il punteggio finale ha decretato la vittoria di un punto 21 a 20 interrompendo la serie di 15 vittorie consecutive degli all blacks",
+    "text": "Il punteggio finale ha decretato la vittoria di un punto, 21 a venti, interrompla la serie di 15 vittorie consecutive degli All Blacks.",
+    "wall_seconds": 1.1348077729999204,
+    "errors": 2,
+    "reference_words": 23
+  },
+  {
+    "run": 0,
+    "file": "fleurs_it_validation_006.wav",
+    "reference": "alcuni cantanti famosi da tutto il paese hanno offerto ai piedi di shri shyam i bhajan ovvero dei canti di devozione",
+    "text": "Alcuni cantanti famosi da tutto il Paese hanno offerto ai piedi di Shri Shyam i baiyan, ovvero dei canti di devozione.",
+    "wall_seconds": 1.048029002999101,
+    "errors": 1,
+    "reference_words": 21
+  },
+  {
+    "run": 0,
+    "file": "fleurs_it_validation_007.wav",
+    "reference": "su carreggiate ghiacciate e innevate l'attrito è ridotto e non è possibile guidare come quando ci si trova sull'asfalto pulito",
+    "text": "Su carreggiate ghiacciate e innevate. L'attrito è ridotto e non è possibile guidare come quando ci si trova sull'asfalto pulito.",
+    "wall_seconds": 1.2406230750002578,
+    "errors": 0,
+    "reference_words": 22
+  },
+  {
+    "run": 1,
+    "file": "fleurs_it_validation_001.wav",
+    "reference": "non appena usciti dalla corrente tornare a nuoto non risulterà più difficile del normale",
+    "text": "Non appena usciti dalla corrente, tornare a nuoto non risulterà più difficile del normale.",
+    "wall_seconds": 0.7364934640008869,
+    "errors": 0,
+    "reference_words": 14
+  },
+  {
+    "run": 1,
+    "file": "fleurs_it_validation_002.wav",
+    "reference": "tutti sanno che l'argentina vanta una delle migliori squadre e i migliori giocatori di polo al mondo",
+    "text": "Tutti sanno che l'Argentina vanta una delle migliori squadre e i migliori giocatori di Polo al mondo.",
+    "wall_seconds": 0.8406464060008147,
+    "errors": 0,
+    "reference_words": 18
+  },
+  {
+    "run": 1,
+    "file": "fleurs_it_validation_003.wav",
+    "reference": "nel giro di due ore sono esplose altre tre bombe nelle vicinanze degli edifici governativi",
+    "text": "Nel giro di 2 ore sono esplose altre tre bombe nelle vicinanze degli edifici governativi.",
+    "wall_seconds": 0.7706029029995989,
+    "errors": 1,
+    "reference_words": 15
+  },
+  {
+    "run": 1,
+    "file": "fleurs_it_validation_005.wav",
+    "reference": "il punteggio finale ha decretato la vittoria di un punto 21 a 20 interrompendo la serie di 15 vittorie consecutive degli all blacks",
+    "text": "Il punteggio finale ha decretato la vittoria di un punto, 21 a venti, interrompla la serie di 15 vittorie consecutive degli All Blacks.",
+    "wall_seconds": 1.1049315689997457,
+    "errors": 2,
+    "reference_words": 23
+  },
+  {
+    "run": 1,
+    "file": "fleurs_it_validation_006.wav",
+    "reference": "alcuni cantanti famosi da tutto il paese hanno offerto ai piedi di shri shyam i bhajan ovvero dei canti di devozione",
+    "text": "Alcuni cantanti famosi da tutto il Paese hanno offerto ai piedi di Shri Shyam i baiyan, ovvero dei canti di devozione.",
+    "wall_seconds": 1.0610839290002332,
+    "errors": 1,
+    "reference_words": 21
+  },
+  {
+    "run": 1,
+    "file": "fleurs_it_validation_007.wav",
+    "reference": "su carreggiate ghiacciate e innevate l'attrito è ridotto e non è possibile guidare come quando ci si trova sull'asfalto pulito",
+    "text": "Su carreggiate ghiacciate e innevate. L'attrito è ridotto e non è possibile guidare come quando ci si trova sull'asfalto pulito.",
+    "wall_seconds": 1.2532676499995432,
+    "errors": 0,
+    "reference_words": 22
+  },
+  {
+    "run": 2,
+    "file": "fleurs_it_validation_001.wav",
+    "reference": "non appena usciti dalla corrente tornare a nuoto non risulterà più difficile del normale",
+    "text": "Non appena usciti dalla corrente, tornare a nuoto non risulterà più difficile del normale.",
+    "wall_seconds": 0.7379833450013393,
+    "errors": 0,
+    "reference_words": 14
+  },
+  {
+    "run": 2,
+    "file": "fleurs_it_validation_002.wav",
+    "reference": "tutti sanno che l'argentina vanta una delle migliori squadre e i migliori giocatori di polo al mondo",
+    "text": "Tutti sanno che l'Argentina vanta una delle migliori squadre e i migliori giocatori di Polo al mondo.",
+    "wall_seconds": 0.9323366329990677,
+    "errors": 0,
+    "reference_words": 18
+  },
+  {
+    "run": 2,
+    "file": "fleurs_it_validation_003.wav",
+    "reference": "nel giro di due ore sono esplose altre tre bombe nelle vicinanze degli edifici governativi",
+    "text": "Nel giro di 2 ore sono esplose altre tre bombe nelle vicinanze degli edifici governativi.",
+    "wall_seconds": 1.0293794060016808,
+    "errors": 1,
+    "reference_words": 15
+  },
+  {
+    "run": 2,
+    "file": "fleurs_it_validation_005.wav",
+    "reference": "il punteggio finale ha decretato la vittoria di un punto 21 a 20 interrompendo la serie di 15 vittorie consecutive degli all blacks",
+    "text": "Il punteggio finale ha decretato la vittoria di un punto, 21 a venti, interrompla la serie di 15 vittorie consecutive degli All Blacks.",
+    "wall_seconds": 1.4624880659994233,
+    "errors": 2,
+    "reference_words": 23
+  },
+  {
+    "run": 2,
+    "file": "fleurs_it_validation_006.wav",
+    "reference": "alcuni cantanti famosi da tutto il paese hanno offerto ai piedi di shri shyam i bhajan ovvero dei canti di devozione",
+    "text": "Alcuni cantanti famosi da tutto il Paese hanno offerto ai piedi di Shri Shyam i baiyan, ovvero dei canti di devozione.",
+    "wall_seconds": 1.367886988000464,
+    "errors": 1,
+    "reference_words": 21
+  },
+  {
+    "run": 2,
+    "file": "fleurs_it_validation_007.wav",
+    "reference": "su carreggiate ghiacciate e innevate l'attrito è ridotto e non è possibile guidare come quando ci si trova sull'asfalto pulito",
+    "text": "Su carreggiate ghiacciate e innevate. L'attrito è ridotto e non è possibile guidare come quando ci si trova sull'asfalto pulito.",
+    "wall_seconds": 1.6089438540002448,
+    "errors": 0,
+    "reference_words": 22
+  },
+  {
+    "run": 3,
+    "file": "fleurs_it_validation_001.wav",
+    "reference": "non appena usciti dalla corrente tornare a nuoto non risulterà più difficile del normale",
+    "text": "Non appena usciti dalla corrente, tornare a nuoto non risulterà più difficile del normale.",
+    "wall_seconds": 0.9527850560007209,
+    "errors": 0,
+    "reference_words": 14
+  },
+  {
+    "run": 3,
+    "file": "fleurs_it_validation_002.wav",
+    "reference": "tutti sanno che l'argentina vanta una delle migliori squadre e i migliori giocatori di polo al mondo",
+    "text": "Tutti sanno che l'Argentina vanta una delle migliori squadre e i migliori giocatori di Polo al mondo.",
+    "wall_seconds": 1.0809755430000223,
+    "errors": 0,
+    "reference_words": 18
+  },
+  {
+    "run": 3,
+    "file": "fleurs_it_validation_003.wav",
+    "reference": "nel giro di due ore sono esplose altre tre bombe nelle vicinanze degli edifici governativi",
+    "text": "Nel giro di 2 ore sono esplose altre tre bombe nelle vicinanze degli edifici governativi.",
+    "wall_seconds": 1.0319591339994076,
+    "errors": 1,
+    "reference_words": 15
+  },
+  {
+    "run": 3,
+    "file": "fleurs_it_validation_005.wav",
+    "reference": "il punteggio finale ha decretato la vittoria di un punto 21 a 20 interrompendo la serie di 15 vittorie consecutive degli all blacks",
+    "text": "Il punteggio finale ha decretato la vittoria di un punto, 21 a venti, interrompla la serie di 15 vittorie consecutive degli All Blacks.",
+    "wall_seconds": 1.4648167490013293,
+    "errors": 2,
+    "reference_words": 23
+  },
+  {
+    "run": 3,
+    "file": "fleurs_it_validation_006.wav",
+    "reference": "alcuni cantanti famosi da tutto il paese hanno offerto ai piedi di shri shyam i bhajan ovvero dei canti di devozione",
+    "text": "Alcuni cantanti famosi da tutto il Paese hanno offerto ai piedi di Shri Shyam i baiyan, ovvero dei canti di devozione.",
+    "wall_seconds": 1.3744612239988783,
+    "errors": 1,
+    "reference_words": 21
+  },
+  {
+    "run": 3,
+    "file": "fleurs_it_validation_007.wav",
+    "reference": "su carreggiate ghiacciate e innevate l'attrito è ridotto e non è possibile guidare come quando ci si trova sull'asfalto pulito",
+    "text": "Su carreggiate ghiacciate e innevate. L'attrito è ridotto e non è possibile guidare come quando ci si trova sull'asfalto pulito.",
+    "wall_seconds": 1.6222364749992266,
+    "errors": 0,
+    "reference_words": 22
+  }
+]

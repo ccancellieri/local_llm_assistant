@@ -1,0 +1,58 @@
+[
+  {
+    "case": "it-luce_cucina-on",
+    "reference": "accendi la luce cucina",
+    "text": "Accendi la luce cucina.",
+    "wall_seconds": 0.37621737600056804,
+    "exact": true
+  },
+  {
+    "case": "it-luce_cucina-off",
+    "reference": "spegni la luce cucina",
+    "text": "Spegni la luce cucina.",
+    "wall_seconds": 0.3754033850000269,
+    "exact": true
+  },
+  {
+    "case": "it-luce_camera_da_letto-on",
+    "reference": "accendi la luce camera da letto",
+    "text": "Accendi la luce camera da letto.",
+    "wall_seconds": 0.43057815700012725,
+    "exact": true
+  },
+  {
+    "case": "it-luce_camera_da_letto-off",
+    "reference": "spegni la luce camera da letto",
+    "text": "Spegni la luce camera da letto.",
+    "wall_seconds": 0.4784423990004143,
+    "exact": true
+  },
+  {
+    "case": "it-luce_tavolo-on",
+    "reference": "accendi la luce tavolo",
+    "text": "Accendi la luce tavolo.",
+    "wall_seconds": 0.4064374969984783,
+    "exact": true
+  },
+  {
+    "case": "it-luce_tavolo-off",
+    "reference": "spegni la luce tavolo",
+    "text": "Spegni la luce tavolo.",
+    "wall_seconds": 0.3981034959997487,
+    "exact": true
+  },
+  {
+    "case": "it-reject-0",
+    "reference": "non accendere la luce cucina",
+    "text": "Non accendere la luce cucina.",
+    "wall_seconds": 0.3981996140009869,
+    "exact": true
+  },
+  {
+    "case": "it-reject-1",
+    "reference": "non spegnere la luce tavolo",
+    "text": "Non spegnere la luce tavolo.",
+    "wall_seconds": 0.4107767139994394,
+    "exact": true
+  }
+]

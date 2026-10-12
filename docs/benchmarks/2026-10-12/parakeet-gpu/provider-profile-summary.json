@@ -1,0 +1,34 @@
+{
+  "profiles": [
+    {
+      "file": "probe-numpy_2026-10-12_19-50-07_816.json",
+      "bytes": 3105673,
+      "node_executions": {
+        "CUDAExecutionProvider": 2896,
+        "CPUExecutionProvider": 999
+      },
+      "node_duration_ms": {
+        "CUDAExecutionProvider": 148.048,
+        "CPUExecutionProvider": 467.914
+      }
+    },
+    {
+      "file": "probe-numpy_2026-10-12_19-50-10_524.json",
+      "bytes": 1645438,
+      "node_executions": {
+        "CUDAExecutionProvider": 1800,
+        "CPUExecutionProvider": 288
+      },
+      "node_duration_ms": {
+        "CUDAExecutionProvider": 29.069,
+        "CPUExecutionProvider": 24.714
+      }
+    }
+  ],
+  "vram": {
+    "samples": 167,
+    "minimum_used_MiB": 929,
+    "maximum_used_MiB": 1367,
+    "maximum_gpu_utilization_percent": 38
+  }
+}

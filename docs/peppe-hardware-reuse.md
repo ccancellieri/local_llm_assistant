@@ -60,14 +60,29 @@ requests taking 5–8 s. Resident Piper shortened a tested synthesis path to
 approximately 0.25–0.32 s. These are separate historical observations, not
 one measured end-to-end latency or a hard real-time guarantee.
 
-## Next experiment
+## GPU qualification and privacy goal
 
-Test a compatible Parakeet GPU runtime on the MX250 separately. Verify CUDA
-provider availability, supported precision on Pascal, graph partitions that
-fall back to CPU, warm latency and total host/VRAM footprint. The CPU INT8
-weights fitting on disk do not establish CUDA compatibility or speed. Follow
-with real speech, wake/stop, background audio and bilingual regressions before
-changing the deployed recognizer.
+The [completed MX250 qualification](benchmarks/2026-10-12/parakeet-gpu/README.md)
+proved real CUDA execution using CPU preprocessing and CPU fallback. Default
+GPU preprocessing failed on Pascal. The hybrid configuration took a 1.071 s
+warm median versus 0.766 s in the earlier CPU run, and peaked at 1.64 GiB host
+RSS versus 1.36 GiB. Total VRAM rose from 929 to 1,367 MiB with Whisper still
+resident. These separate runtime configurations do not isolate GPU overhead,
+but provide no measured upgrade. Whisper remains deployed; real speech,
+wake/stop, background audio and bilingual regressions remain pending.
+
+The goal is to replace Alexa's listening and light-control path with local
+speech processing, a local dialogue model and bounded relay commands. The
+owner reports that Echo microphones are disabled in his setup. Keeping Echo
+devices for output does not make Spotify, Echo services, web search or remote
+AI offline. General Echo delivery of locally generated speech is unqualified.
+The current dialogue profile uses OmniRoute while the local llama.cpp service
+is stopped; it is a hybrid prototype. Optional remote providers require an
+explicit privacy boundary and remain subject to availability and terms.
+
+The [earlier Alexa-to-Raspberry Pi light-control video](https://www.youtube.com/shorts/a4J8do0zlt4)
+shows the previous arrangement. Peppe's physical relay integration is a goal,
+not an outcome of the speech benchmarks.
 
 For Raspberry Pi Zero W, the physical limit is 512 MB and ARMv6. The measured
 Parakeet CPU footprint rules out this configuration there. The relay prototype
