@@ -1,0 +1,26 @@
+[
+  {
+    "file": "needle",
+    "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/93e88ede867e4311c39151285e74df513e4b835b/linux-x86_64/needle",
+    "bytes": 1548480,
+    "sha256": "3531889c4d677acc47905b21c79741b52fd9af2c54ba177f54f83c0bc12e84c7"
+  },
+  {
+    "file": "needle.h",
+    "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/93e88ede867e4311c39151285e74df513e4b835b/linux-x86_64/needle.h",
+    "bytes": 4528,
+    "sha256": "a27dac4b3239eead91d124b7f7dbce5495c13019903fd817b68c16d39b055a99"
+  },
+  {
+    "file": "whistle.cact",
+    "url": "https://huggingface.co/Cactus-Compute/whistle/resolve/ca5287601bef25af26dcf2e1b2bdc0843a7c19e5/whistle.cact",
+    "bytes": 16919407,
+    "sha256": "b6e02f048568ac5d01a2042556c658061e699acbc0aa2a1439f52f3d461dffeb"
+  },
+  {
+    "file": "libneedle.a",
+    "url": "https://huggingface.co/Cactus-Compute/needle3/resolve/93e88ede867e4311c39151285e74df513e4b835b/linux-x86_64/libneedle.a",
+    "bytes": 2200092,
+    "sha256": "5f8ed375f304cf7e7ba9e6e37d105b51549597e014afbd006407a0836804e5cd"
+  }
+]

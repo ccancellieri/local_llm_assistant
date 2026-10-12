@@ -1,0 +1,194 @@
+[
+  {
+    "case": "it-luce_cucina-on",
+    "mode": "whistle",
+    "reference": "accendi la luce cucina",
+    "text": "Accendi la luce cucina.",
+    "wall_seconds": 0.09183742499953951,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_cucina-on",
+    "mode": "whistle-keywords",
+    "reference": "accendi la luce cucina",
+    "text": "Accendi la luce cucina.",
+    "wall_seconds": 0.07487065700024687,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_cucina-on",
+    "mode": "whisper-turbo",
+    "reference": "accendi la luce cucina",
+    "text": " Accendi la luce cucina.\n",
+    "wall_seconds": 1.2082851489994937,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_cucina-off",
+    "mode": "whistle",
+    "reference": "spegni la luce cucina",
+    "text": "Spegni la luce cucina.",
+    "wall_seconds": 0.07653081700027542,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_cucina-off",
+    "mode": "whistle-keywords",
+    "reference": "spegni la luce cucina",
+    "text": "Spegni la luce cucina.",
+    "wall_seconds": 0.06999190499936958,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_cucina-off",
+    "mode": "whisper-turbo",
+    "reference": "spegni la luce cucina",
+    "text": " Spegni la luce cucina.\n",
+    "wall_seconds": 1.1832166240001243,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_camera_da_letto-on",
+    "mode": "whistle",
+    "reference": "accendi la luce camera da letto",
+    "text": "Accendi la luce camera dal letto.",
+    "wall_seconds": 0.1386010329997589,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_camera_da_letto-on",
+    "mode": "whistle-keywords",
+    "reference": "accendi la luce camera da letto",
+    "text": "accendi la luce camera da letto.",
+    "wall_seconds": 0.21092344199951185,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_camera_da_letto-on",
+    "mode": "whisper-turbo",
+    "reference": "accendi la luce camera da letto",
+    "text": " Accendi la luce camera da letto.\n",
+    "wall_seconds": 1.231785984000453,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_camera_da_letto-off",
+    "mode": "whistle",
+    "reference": "spegni la luce camera da letto",
+    "text": "Spegni la luce camera dal letto.",
+    "wall_seconds": 0.1528442509998058,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_camera_da_letto-off",
+    "mode": "whistle-keywords",
+    "reference": "spegni la luce camera da letto",
+    "text": "Spegni la luce camera da letto.",
+    "wall_seconds": 0.07996087099945726,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_camera_da_letto-off",
+    "mode": "whisper-turbo",
+    "reference": "spegni la luce camera da letto",
+    "text": " Spegni la luce camera da letto.\n",
+    "wall_seconds": 2.274767998000243,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_tavolo-on",
+    "mode": "whistle",
+    "reference": "accendi la luce tavolo",
+    "text": "Accendi la luce tavolo.",
+    "wall_seconds": 0.0930656620002992,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_tavolo-on",
+    "mode": "whistle-keywords",
+    "reference": "accendi la luce tavolo",
+    "text": "Accendi la luce tavolo.",
+    "wall_seconds": 0.07932375599921215,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_tavolo-on",
+    "mode": "whisper-turbo",
+    "reference": "accendi la luce tavolo",
+    "text": " Accendi la luce tavolo.\n",
+    "wall_seconds": 1.1780271930001618,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_tavolo-off",
+    "mode": "whistle",
+    "reference": "spegni la luce tavolo",
+    "text": "Spagni la luce tavola.",
+    "wall_seconds": 0.09499591200074065,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_tavolo-off",
+    "mode": "whistle-keywords",
+    "reference": "spegni la luce tavolo",
+    "text": "Spagni la luce tavolo.",
+    "wall_seconds": 0.0768335050006499,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-luce_tavolo-off",
+    "mode": "whisper-turbo",
+    "reference": "spegni la luce tavolo",
+    "text": " Spegni la luce tavolo.\n",
+    "wall_seconds": 1.2441161160004413,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-reject-0",
+    "mode": "whistle",
+    "reference": "non accendere la luce cucina",
+    "text": "Non accendere la luce cucina.",
+    "wall_seconds": 0.15693921300044167,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-reject-0",
+    "mode": "whistle-keywords",
+    "reference": "non accendere la luce cucina",
+    "text": "non accendere la luce cucina.",
+    "wall_seconds": 0.08489032900070015,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-reject-0",
+    "mode": "whisper-turbo",
+    "reference": "non accendere la luce cucina",
+    "text": " Non accendere la luce cucina.\n",
+    "wall_seconds": 1.2082822109996414,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-reject-1",
+    "mode": "whistle",
+    "reference": "non spegnere la luce tavolo",
+    "text": "Non spegnere la luce tavola.",
+    "wall_seconds": 0.14643578699997306,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-reject-1",
+    "mode": "whistle-keywords",
+    "reference": "non spegnere la luce tavolo",
+    "text": "non spegnere la luce tavolo.",
+    "wall_seconds": 0.087072586999966,
+    "hardware_actions": 0
+  },
+  {
+    "case": "it-reject-1",
+    "mode": "whisper-turbo",
+    "reference": "non spegnere la luce tavolo",
+    "text": " Non spegnere la luce tavolo.\n",
+    "wall_seconds": 1.2097434759998578,
+    "hardware_actions": 0
+  }
+]

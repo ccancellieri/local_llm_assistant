@@ -1,0 +1,50 @@
+{
+  "load_seconds": 0.02279151600032492,
+  "peak_driver_rss_KiB": 94568,
+  "probes": [
+    {
+      "probe": "silence",
+      "result": {
+        "text": "",
+        "language": "",
+        "ttft_ms": 0.0,
+        "decode_tps": 0.0
+      },
+      "seconds": 0.0004922110001643887
+    },
+    {
+      "probe": "constant-noise",
+      "result": {
+        "text": "Grazie.",
+        "language": "it",
+        "ttft_ms": 32.6,
+        "decode_tps": 206.1
+      },
+      "seconds": 0.06175251599961484
+    }
+  ],
+  "engines": {
+    "whistle": {
+      "warm_requests": 18,
+      "median_seconds": 2.66150844349977,
+      "p95_seconds": 3.4440188083004153,
+      "errors_per_pass": [
+        13,
+        13,
+        13
+      ],
+      "words_per_pass": 113
+    },
+    "whisper-turbo-resident": {
+      "warm_requests": 18,
+      "median_seconds": 1.4819994019999285,
+      "p95_seconds": 1.9079741104500945,
+      "errors_per_pass": [
+        2,
+        1,
+        2
+      ],
+      "words_per_pass": 113
+    }
+  }
+}

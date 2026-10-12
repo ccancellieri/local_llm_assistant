@@ -37,6 +37,10 @@ usage, security, and service details.
 
 ## Models and third-party software
 
+See the [Italian ASR comparison](docs/benchmarks/2026-10-12/README.md) for
+measured Whistle and Parakeet CPU results against resident Whisper Turbo GPU,
+including raw predictions, short-command latency and silence-rejection limits.
+
 No model weights or third-party binaries are distributed by this repository.
 Download them from their respective publishers and review their licenses and
 acceptable-use terms independently. The Apache-2.0 license of this project does

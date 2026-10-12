@@ -1,0 +1,49 @@
+{
+  "load_seconds": 2.5678277950009942,
+  "peak_rss_KiB": 1425552,
+  "versions": {
+    "onnx-asr": "0.12.0",
+    "onnxruntime": "1.31.0",
+    "numpy": "2.5.4"
+  },
+  "providers": [
+    "AzureExecutionProvider",
+    "CPUExecutionProvider"
+  ],
+  "language": "automatic; Parakeet does not take an Italian language prompt",
+  "engines": {
+    "parakeet-int8-cpu": {
+      "median_seconds": 0.7655394185003388,
+      "p95_seconds": 1.137021177000952,
+      "errors_per_pass": [
+        4,
+        4,
+        4
+      ],
+      "words_per_pass": 113
+    },
+    "whisper-turbo-resident": {
+      "median_seconds": 1.4621975164991454,
+      "p95_seconds": 1.674562943300134,
+      "errors_per_pass": [
+        1,
+        1,
+        1
+      ],
+      "words_per_pass": 113
+    }
+  },
+  "commands": {
+    "parakeet-int8-cpu": {
+      "exact": 8,
+      "cases": 8,
+      "median_seconds": 0.22530852149975544
+    },
+    "whisper-turbo-resident": {
+      "exact": 8,
+      "cases": 8,
+      "median_seconds": 1.2298276020010235
+    }
+  },
+  "silence": "Thank you."
+}

@@ -1,0 +1,130 @@
+[
+  {
+    "engine": "parakeet-int8-cpu",
+    "case": "it-luce_cucina-on",
+    "reference": "accendi la luce cucina",
+    "text": "Accendi la luce cucina.",
+    "wall_seconds": 0.23496661900026083,
+    "exact": true
+  },
+  {
+    "engine": "whisper-turbo-resident",
+    "case": "it-luce_cucina-on",
+    "reference": "accendi la luce cucina",
+    "text": " Accendi la luce cucina.\n",
+    "wall_seconds": 1.2240317550003965,
+    "exact": true
+  },
+  {
+    "engine": "parakeet-int8-cpu",
+    "case": "it-luce_cucina-off",
+    "reference": "spegni la luce cucina",
+    "text": "Spegni la luce cucina.",
+    "wall_seconds": 0.2227041049991385,
+    "exact": true
+  },
+  {
+    "engine": "whisper-turbo-resident",
+    "case": "it-luce_cucina-off",
+    "reference": "spegni la luce cucina",
+    "text": " Spegni la luce cucina.\n",
+    "wall_seconds": 1.2356234490016504,
+    "exact": true
+  },
+  {
+    "engine": "parakeet-int8-cpu",
+    "case": "it-luce_camera_da_letto-on",
+    "reference": "accendi la luce camera da letto",
+    "text": "Accendi la luce camera da letto.",
+    "wall_seconds": 0.24233396599993284,
+    "exact": true
+  },
+  {
+    "engine": "whisper-turbo-resident",
+    "case": "it-luce_camera_da_letto-on",
+    "reference": "accendi la luce camera da letto",
+    "text": " Accendi la luce camera da letto.\n",
+    "wall_seconds": 1.2735224640000524,
+    "exact": true
+  },
+  {
+    "engine": "parakeet-int8-cpu",
+    "case": "it-luce_camera_da_letto-off",
+    "reference": "spegni la luce camera da letto",
+    "text": "Spegni la luce camera da letto.",
+    "wall_seconds": 0.26793566699961957,
+    "exact": true
+  },
+  {
+    "engine": "whisper-turbo-resident",
+    "case": "it-luce_camera_da_letto-off",
+    "reference": "spegni la luce camera da letto",
+    "text": " Spegni la luce camera da letto.\n",
+    "wall_seconds": 2.3509143510000285,
+    "exact": true
+  },
+  {
+    "engine": "parakeet-int8-cpu",
+    "case": "it-luce_tavolo-on",
+    "reference": "accendi la luce tavolo",
+    "text": "Accendi la luce tavolo.",
+    "wall_seconds": 0.21332746599910024,
+    "exact": true
+  },
+  {
+    "engine": "whisper-turbo-resident",
+    "case": "it-luce_tavolo-on",
+    "reference": "accendi la luce tavolo",
+    "text": " Accendi la luce tavolo.\n",
+    "wall_seconds": 1.2184238429999823,
+    "exact": true
+  },
+  {
+    "engine": "parakeet-int8-cpu",
+    "case": "it-luce_tavolo-off",
+    "reference": "spegni la luce tavolo",
+    "text": "Spegni la luce tavolo.",
+    "wall_seconds": 0.21107364700037579,
+    "exact": true
+  },
+  {
+    "engine": "whisper-turbo-resident",
+    "case": "it-luce_tavolo-off",
+    "reference": "spegni la luce tavolo",
+    "text": " Spegni la luce tavolo.\n",
+    "wall_seconds": 1.285277210001368,
+    "exact": true
+  },
+  {
+    "engine": "parakeet-int8-cpu",
+    "case": "it-reject-0",
+    "reference": "non accendere la luce cucina",
+    "text": "Non accendere la luce cucina.",
+    "wall_seconds": 0.22755944100026682,
+    "exact": true
+  },
+  {
+    "engine": "whisper-turbo-resident",
+    "case": "it-reject-0",
+    "reference": "non accendere la luce cucina",
+    "text": " Non accendere la luce cucina.\n",
+    "wall_seconds": 1.2041130929992505,
+    "exact": true
+  },
+  {
+    "engine": "parakeet-int8-cpu",
+    "case": "it-reject-1",
+    "reference": "non spegnere la luce tavolo",
+    "text": "Non spegnere la luce tavolo.",
+    "wall_seconds": 0.22305760199924407,
+    "exact": true
+  },
+  {
+    "engine": "whisper-turbo-resident",
+    "case": "it-reject-1",
+    "reference": "non spegnere la luce tavolo",
+    "text": " Non spegnere la luce tavolo.\n",
+    "wall_seconds": 1.208065582000927,
+    "exact": true
+  }
+]
