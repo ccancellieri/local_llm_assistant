@@ -37,6 +37,10 @@ usage, security, and service details.
 
 ## Models and third-party software
 
+The [hardware reuse overview](docs/peppe-hardware-reuse.md) describes Peppe's
+capabilities, measured RAM/VRAM tradeoffs, prototype boundaries and soft
+real-time interaction goals.
+
 See the [Italian ASR comparison](docs/benchmarks/2026-10-12/README.md) for
 measured Whistle and Parakeet CPU results against resident Whisper Turbo GPU,
 including raw predictions, short-command latency and silence-rejection limits.
