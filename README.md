@@ -42,8 +42,16 @@ capabilities, measured RAM/VRAM tradeoffs, prototype boundaries and soft
 real-time interaction goals.
 
 See the [Italian ASR comparison](docs/benchmarks/2026-10-12/README.md) for
-measured Whistle and Parakeet CPU results against resident Whisper Turbo GPU,
+measured Whistle and Parakeet CPU/CUDA results against resident Whisper Turbo GPU,
 including raw predictions, short-command latency and silence-rejection limits.
+
+The [MiniCPM laptop report](evaluation-minicpm.md) and
+[summary](final-evaluation-summary.md) document the earlier language-model
+comparison. MiniCPM5-2B was faster and used less VRAM in that trial, but failed
+Italian quality and command-format checks; it was not adopted.
+
+See the [publication record](docs/peppe-publication.md) for the English article,
+LinkedIn post, illustration and evidence links.
 
 No model weights or third-party binaries are distributed by this repository.
 Download them from their respective publishers and review their licenses and
