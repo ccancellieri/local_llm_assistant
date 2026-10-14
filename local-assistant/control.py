@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import secrets
 import shutil
@@ -21,12 +22,14 @@ HOST = "127.0.0.1"
 PORT = 8091
 TOKEN = secrets.token_urlsafe(24)
 UNITS = {
-    "llm": "local-ai-llama.service",
+    "llm": os.environ.get("LOCAL_LLM_SERVICE", "local-ai-llama.service"),
     "web": "local-ai-assistant.service",
     "voice": "local-ai-peppe.service",
     "audio": "local-ai-audio.service",
 }
 LOG_UNITS = {**UNITS, "console": "local-ai-control.service"}
+GATEWAY_BACKEND = UNITS["llm"] != "local-ai-llama.service"
+GATEWAY_MODEL = os.environ.get("LOCAL_LLM_MODEL", "")
 LLAMA_URL = "http://127.0.0.1:8080"
 ASSISTANT_URL = "http://127.0.0.1:8090"
 _cache: dict[str, tuple[float, object]] = {}
@@ -160,6 +163,9 @@ def metric(metrics: dict[str, float], *suffixes: str) -> float | None:
 
 
 def model_info(states: dict[str, dict]) -> dict:
+    if GATEWAY_BACKEND:
+        return {"file": "Backend tramite gateway", "alias": GATEWAY_MODEL,
+                "context": None, "slots": None, "version": ""}
     exec_line = states.get("llm", {}).get("exec", "")
     model_match = re.search(r"--model[= ]+([^ ;}]+)", exec_line)
     alias_match = re.search(r"--alias[= ]+([^ ;}]+)", exec_line)
@@ -189,7 +195,8 @@ def overview() -> dict:
     swap_total = memory.get("SwapTotal", 0)
     swap_free = memory.get("SwapFree", 0)
     disk = shutil.disk_usage("/")
-    metrics = cached("metrics", 10, fetch_metrics) if states["llm"]["active"] else {}
+    metrics = (cached("metrics", 10, fetch_metrics)
+               if states["llm"]["active"] and not GATEWAY_BACKEND else {})
     return {
         "timestamp": time.strftime("%H:%M:%S"),
         "services": {name: {key: value for key, value in data.items() if key != "exec"}
@@ -241,6 +248,26 @@ def speech_events() -> list[dict[str, str]]:
     return events[-24:][::-1]
 
 
+CONTROL_CLIENT_JS = r'''
+async function controlFetch(url, options = {}) {
+    const send = () => fetch(url, {
+        ...options,
+        headers: {...options.headers, 'X-Control-Token': token},
+    });
+    const response = await send();
+    if (response.status !== 403) return response;
+    const error = await response.clone().json().catch(() => ({}));
+    if (error.code !== 'control_token_expired') return response;
+    const refresh = await fetch('/api/session', {cache: 'no-store'});
+    if (!refresh.ok) return response;
+    const session = await refresh.json();
+    if (typeof session.token !== 'string' || !session.token) return response;
+    token = session.token;
+    return send();
+}
+'''
+
+
 INDEX = r'''<!doctype html><html lang="it"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Console Peppe</title>
 <style>
@@ -253,9 +280,11 @@ INDEX = r'''<!doctype html><html lang="it"><head><meta charset="utf-8">
 <section class="card"><h2>Risorse</h2><div id="resources"></div><small>Aggiornamento ogni 10 s solo con pagina visibile; GPU ogni 15 s.</small></section>
 <section class="card wide"><div class="top"><h2>Parole e risposte riconosciute</h2><button class="ghost" onclick="loadSpeech()">Aggiorna</button></div><div id="speech"><span class="muted">Premi Aggiorna per caricare la cronologia.</span></div></section>
 <section class="card wide"><div class="top"><h2>Log recenti</h2><div><select id="log-unit"><option value="voice">Voce</option><option value="llm">LLM</option><option value="web">Assistente</option><option value="audio">Audio</option><option value="console">Console</option></select><button class="ghost" onclick="loadLogs()">Carica log</button></div></div><pre id="logs">I log vengono caricati solo su richiesta per non consumare risorse.</pre></section></div>
-<script>const token='__TOKEN__',labels={llm:'LLM',web:'Interfaccia',voice:'Ascolto',audio:'Audio'},$=id=>document.getElementById(id);let chatHistory=[],chatVoice=false,chatRunning=false,recorder,chunks=[];function fmt(n){if(n==null)return'—';let u=['B','KiB','MiB','GiB'],i=0;while(n>=1024&&i<3){n/=1024;i++}return n.toFixed(i>1?1:0)+' '+u[i]}function pct(a,b){return b?Math.min(100,Math.round(a/b*100)):0}function state(id,on){let e=$(id);e.textContent=on?'ATTIVO':'SPENTO';e.className='state '+(on?'on':'off')}function bar(name,used,total,extra=''){let p=pct(used,total);return `<div class="row"><span>${name}</span><span class="value">${fmt(used)} / ${fmt(total)} ${extra}</span></div><div class="bar"><i style="width:${p}%"></i></div>`}
+<script>let token='__TOKEN__';
+__CONTROL_CLIENT__
+const labels={llm:'LLM',web:'Interfaccia',voice:'Ascolto',audio:'Audio'},$=id=>document.getElementById(id);let chatHistory=[],chatVoice=false,chatRunning=false,recorder,chunks=[];function fmt(n){if(n==null)return'—';let u=['B','KiB','MiB','GiB'],i=0;while(n>=1024&&i<3){n/=1024;i++}return n.toFixed(i>1?1:0)+' '+u[i]}function pct(a,b){return b?Math.min(100,Math.round(a/b*100)):0}function state(id,on){let e=$(id);e.textContent=on?'ATTIVO':'SPENTO';e.className='state '+(on?'on':'off')}function bar(name,used,total,extra=''){let p=pct(used,total);return `<div class="row"><span>${name}</span><span class="value">${fmt(used)} / ${fmt(total)} ${extra}</span></div><div class="bar"><i style="width:${p}%"></i></div>`}
 async function refresh(){if(document.hidden)return;try{let s=await(await fetch('/api/overview')).json();$('updated').textContent=s.timestamp;state('system',s.services.llm.active&&s.services.web.active);state('voice',s.services.voice.active);$('services').innerHTML=Object.entries(s.services).map(([k,v])=>`<div class="service"><span class="state ${v.active?'on':'off'}">●</span> ${labels[k]}<br><small>${v.pid?'PID '+v.pid+' · '+fmt(v.memory_bytes):(v.active?'attivo · nessun processo residente':'spento')}</small></div>`).join('');$('model-file').textContent=s.model.file;$('model-alias').textContent=s.model.alias||'—';$('model-context').textContent=s.model.context?s.model.context.toLocaleString('it-IT')+' token':'—';$('model-version').textContent=s.model.version||'—';$('prompt-tokens').textContent=s.llm.prompt_tokens_total??'—';$('generated-tokens').textContent=s.llm.generated_tokens_total??'—';let r=s.resources,g=r.gpu,html=`<div class="row"><span>CPU</span><span>${r.cpu_percent}%</span></div>`+bar('RAM',r.ram_used,r.ram_total,'· liberi '+fmt(r.ram_available))+bar('Swap',r.swap_used,r.swap_total)+bar('Disco',r.disk_used,r.disk_total);if(g.available)html+=bar('VRAM',g.used_mib*1048576,g.total_mib*1048576,`· GPU ${g.percent}% · ${g.temperature_c}°C`);$('resources').innerHTML=html}catch(e){$('updated').textContent='non raggiungibile'}}
-function chatBubble(kind,text){let d=document.createElement('div');d.className='bubble '+kind;d.textContent=text;$('chat').appendChild(d);$('chat').scrollTop=$('chat').scrollHeight;return d}function chatBusy(on,text=''){let a=$('chat-actions');a.classList.toggle('busy',on);$('chat-status').textContent=text||(on?'Attendi…':'Pronto')}async function readEvents(payload,onEvent){let r=await fetch('/api/assistant/chat',{method:'POST',headers:{'Content-Type':'application/json','X-Control-Token':token},body:JSON.stringify(payload)});if(!r.ok){let j=await r.json().catch(()=>({}));throw Error(j.error||'Assistente non raggiungibile')}let reader=r.body.getReader(),decoder=new TextDecoder(),buffer='';while(true){let x=await reader.read();buffer+=decoder.decode(x.value||new Uint8Array(),{stream:!x.done});let lines=buffer.split('\n');buffer=lines.pop();for(let line of lines){if(line.trim())onEvent(JSON.parse(line))}if(x.done)break}if(buffer.trim())onEvent(JSON.parse(buffer))}async function sendChat(){let input=$('chat-input'),text=input.value.trim();if(!text||chatRunning)return;chatRunning=true;input.value='';chatBubble('user',text);let prior=[...chatHistory];chatHistory.push({role:'user',content:text});let bubble=chatBubble('assistant','Sto pensando…'),gotText=false,done=null,finalStatus='Pronto';chatBusy(true,'Peppe sta rispondendo');try{await readEvents({message:text,history:prior,stream:true},e=>{if(e.type==='meta')chatBusy(true,'Modalità '+e.profile_label.toLowerCase());else if(e.type==='delta'){if(!gotText){bubble.textContent='';gotText=true}bubble.textContent+=e.text;$('chat').scrollTop=$('chat').scrollHeight}else if(e.type==='done')done=e;else if(e.type==='error')throw Error(e.error)});done=done||{};let answer=done.answer||bubble.textContent||done.error||'Nessuna risposta';bubble.textContent=answer;chatHistory.push({role:'assistant',content:answer});finalStatus=(done.profile_label||'Risposta')+' · '+((done.elapsed_ms||0)/1000).toFixed(1)+' s';if(done.open_url)window.open(done.open_url,'_blank','noopener');if(chatVoice&&done.answer)await speakChat(answer)}catch(e){bubble.textContent='Errore: '+e.message;finalStatus='Assistente non raggiungibile'}finally{chatRunning=false;chatBusy(false,finalStatus)}}async function speakChat(text){let r=await fetch('/api/assistant/speak',{method:'POST',headers:{'Content-Type':'application/json','X-Control-Token':token},body:JSON.stringify({text})});if(r.ok)new Audio(URL.createObjectURL(await r.blob())).play()}function msg(t){$('message').textContent=t}async function act(path){msg('Operazione in corso…');let r=await fetch(path,{method:'POST',headers:{'X-Control-Token':token}}),j=await r.json();msg(j.ok?'Operazione completata':'Errore: '+(j.error||'sconosciuto'));setTimeout(refresh,700)}async function loadLogs(){let u=$('log-unit').value;$('logs').textContent='Caricamento…';let j=await(await fetch('/api/logs?unit='+encodeURIComponent(u)+'&lines=100')).json();$('logs').textContent=(j.lines||[]).join('\n')||'Nessun log disponibile'}async function loadSpeech(){let j=await(await fetch('/api/speech')).json();$('speech').innerHTML='';if(!j.events.length){$('speech').textContent='Nessun evento recente';return}j.events.forEach(e=>{let d=document.createElement('div');d.className='event';let b=document.createElement('span');b.className='badge';b.textContent=e.kind;let t=document.createElement('small');t.textContent=' '+e.time;let p=document.createElement('div');p.textContent=e.text;d.append(b,t,p);$('speech').appendChild(d)})}$('chat-send').onclick=sendChat;$('chat-input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}};$('chat-voice').onclick=e=>{chatVoice=!chatVoice;e.target.textContent=(chatVoice?'🔊':'🔇')+' Voce: '+(chatVoice?'sì':'no')};$('chat-mic').onclick=async e=>{if(recorder&&recorder.state==='recording'){recorder.stop();e.target.textContent='🎙 Parla';return}try{let stream=await navigator.mediaDevices.getUserMedia({audio:true});chunks=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=x=>chunks.push(x.data);recorder.onstop=async()=>{stream.getTracks().forEach(x=>x.stop());chatBusy(true,'Trascrizione…');let r=await fetch('/api/assistant/transcribe',{method:'POST',headers:{'Content-Type':recorder.mimeType,'X-Control-Token':token},body:new Blob(chunks,{type:recorder.mimeType})}),j=await r.json();$('chat-input').value=j.text||'';chatBusy(false);if(j.text)sendChat()};recorder.start();e.target.textContent='⏹ Ferma'}catch(e){$('chat-status').textContent='Microfono non disponibile'}};refresh();setInterval(refresh,10000);document.addEventListener('visibilitychange',refresh);</script></body></html>'''.replace("__TOKEN__", TOKEN)
+function chatBubble(kind,text){let d=document.createElement('div');d.className='bubble '+kind;d.textContent=text;$('chat').appendChild(d);$('chat').scrollTop=$('chat').scrollHeight;return d}function chatBusy(on,text=''){let a=$('chat-actions');a.classList.toggle('busy',on);$('chat-status').textContent=text||(on?'Attendi…':'Pronto')}async function readEvents(payload,onEvent){let r=await controlFetch('/api/assistant/chat',{method:'POST',headers:{'Content-Type':'application/json','X-Control-Token':token},body:JSON.stringify(payload)});if(!r.ok){let j=await r.json().catch(()=>({}));throw Error(j.error||'Assistente non raggiungibile')}let reader=r.body.getReader(),decoder=new TextDecoder(),buffer='';while(true){let x=await reader.read();buffer+=decoder.decode(x.value||new Uint8Array(),{stream:!x.done});let lines=buffer.split('\n');buffer=lines.pop();for(let line of lines){if(line.trim())onEvent(JSON.parse(line))}if(x.done)break}if(buffer.trim())onEvent(JSON.parse(buffer))}async function sendChat(){let input=$('chat-input'),text=input.value.trim();if(!text||chatRunning)return;chatRunning=true;input.value='';chatBubble('user',text);let prior=[...chatHistory];chatHistory.push({role:'user',content:text});let bubble=chatBubble('assistant','Sto pensando…'),gotText=false,done=null,finalStatus='Pronto';chatBusy(true,'Peppe sta rispondendo');try{await readEvents({message:text,history:prior,stream:true},e=>{if(e.type==='meta')chatBusy(true,'Modalità '+e.profile_label.toLowerCase());else if(e.type==='delta'){if(!gotText){bubble.textContent='';gotText=true}bubble.textContent+=e.text;$('chat').scrollTop=$('chat').scrollHeight}else if(e.type==='done')done=e;else if(e.type==='error')throw Error(e.error)});done=done||{};let answer=done.answer||bubble.textContent||done.error||'Nessuna risposta';bubble.textContent=answer;chatHistory.push({role:'assistant',content:answer});finalStatus=(done.profile_label||'Risposta')+' · '+((done.elapsed_ms||0)/1000).toFixed(1)+' s';if(done.open_url)window.open(done.open_url,'_blank','noopener');if(chatVoice&&done.answer)await speakChat(answer)}catch(e){bubble.textContent='Errore: '+e.message;finalStatus='Assistente non raggiungibile'}finally{chatRunning=false;chatBusy(false,finalStatus)}}async function speakChat(text){let r=await controlFetch('/api/assistant/speak',{method:'POST',headers:{'Content-Type':'application/json','X-Control-Token':token},body:JSON.stringify({text})});if(r.ok)new Audio(URL.createObjectURL(await r.blob())).play()}function msg(t){$('message').textContent=t}async function act(path){msg('Operazione in corso…');let r=await controlFetch(path,{method:'POST',headers:{'X-Control-Token':token}}),j=await r.json();msg(j.ok?'Operazione completata':'Errore: '+(j.error||'sconosciuto'));setTimeout(refresh,700)}async function loadLogs(){let u=$('log-unit').value;$('logs').textContent='Caricamento…';let j=await(await fetch('/api/logs?unit='+encodeURIComponent(u)+'&lines=100')).json();$('logs').textContent=(j.lines||[]).join('\n')||'Nessun log disponibile'}async function loadSpeech(){let j=await(await fetch('/api/speech')).json();$('speech').innerHTML='';if(!j.events.length){$('speech').textContent='Nessun evento recente';return}j.events.forEach(e=>{let d=document.createElement('div');d.className='event';let b=document.createElement('span');b.className='badge';b.textContent=e.kind;let t=document.createElement('small');t.textContent=' '+e.time;let p=document.createElement('div');p.textContent=e.text;d.append(b,t,p);$('speech').appendChild(d)})}$('chat-send').onclick=sendChat;$('chat-input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}};$('chat-voice').onclick=e=>{chatVoice=!chatVoice;e.target.textContent=(chatVoice?'🔊':'🔇')+' Voce: '+(chatVoice?'sì':'no')};$('chat-mic').onclick=async e=>{if(recorder&&recorder.state==='recording'){recorder.stop();e.target.textContent='🎙 Parla';return}try{let stream=await navigator.mediaDevices.getUserMedia({audio:true});chunks=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=x=>chunks.push(x.data);recorder.onstop=async()=>{stream.getTracks().forEach(x=>x.stop());chatBusy(true,'Trascrizione…');let r=await controlFetch('/api/assistant/transcribe',{method:'POST',headers:{'Content-Type':recorder.mimeType,'X-Control-Token':token},body:new Blob(chunks,{type:recorder.mimeType})}),j=await r.json();$('chat-input').value=j.text||'';chatBusy(false);if(j.text)sendChat()};recorder.start();e.target.textContent='⏹ Ferma'}catch(e){$('chat-status').textContent='Microfono non disponibile'}};refresh();setInterval(refresh,10000);document.addEventListener('visibilitychange',refresh);</script></body></html>'''.replace("__CONTROL_CLIENT__", CONTROL_CLIENT_JS).replace("__TOKEN__", TOKEN)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -278,6 +307,8 @@ class Handler(BaseHTTPRequestHandler):
         query = urllib.parse.parse_qs(parsed.query)
         if parsed.path == "/":
             self.send_data(200, INDEX.encode(), "text/html; charset=utf-8")
+        elif parsed.path == "/api/session":
+            self.json({"token": TOKEN})
         elif parsed.path in ("/api/status", "/api/overview"):
             data = overview()
             self.json(data if parsed.path.endswith("overview") else
@@ -298,7 +329,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         if not secrets.compare_digest(self.headers.get("X-Control-Token", ""), TOKEN):
-            return self.json({"ok": False, "error": "richiesta non autorizzata"}, 403)
+            return self.json({"ok": False, "error": "richiesta non autorizzata",
+                              "code": "control_token_expired"}, 403)
         if self.path.startswith("/api/assistant/"):
             return self.proxy_assistant()
         actions = {

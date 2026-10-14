@@ -17,6 +17,8 @@ fi
 
 install -m 0755 "$project_dir/local-assistant/assistant.py" \
     "$data_dir/assistant/assistant.py"
+install -m 0644 "$project_dir/local-assistant/spotify_connect.py" \
+    "$data_dir/assistant/spotify_connect.py"
 install -m 0644 "$project_dir/local-ai-llama.service" \
     "$unit_dir/local-ai-llama.service"
 

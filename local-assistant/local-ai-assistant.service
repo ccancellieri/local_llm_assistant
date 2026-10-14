@@ -1,7 +1,7 @@
 [Unit]
 Description=Assistente AI locale (voce, strumenti e interfaccia web)
-After=local-ai-llama.service pipewire.service network-online.target
-Wants=local-ai-llama.service
+After=omniroute.service pipewire.service network-online.target
+Wants=omniroute.service
 
 [Service]
 Type=simple
@@ -9,11 +9,12 @@ ExecStart=/usr/bin/python3 %h/.local/share/local-ai/assistant/assistant.py
 Restart=on-failure
 RestartSec=3
 Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-%h/.config/local-ai/omniroute.env
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=%h/.cache/spotify-player %h/.config/spotify-player
+ReadWritePaths=%h/.config/local-ai
 
 [Install]
 WantedBy=default.target

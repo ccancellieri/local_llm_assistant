@@ -21,19 +21,19 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from spotify_connect import SpotifyClient, TOKEN_FILE
+
 
 HOST = os.environ.get("LOCAL_ASSISTANT_HOST", "127.0.0.1")
 PORT = int(os.environ.get("LOCAL_ASSISTANT_PORT", "8090"))
 LLAMA_URL = os.environ.get("LLAMA_URL", "http://127.0.0.1:8080/v1/chat/completions")
 LLAMA_MODEL = os.environ.get("LOCAL_LLM_MODEL", "peppe-local")
+LLM_HEALTH_URL = os.environ.get("LOCAL_LLM_HEALTH_URL", "http://127.0.0.1:8080/health")
 DATA = Path.home() / ".local/share/local-ai"
 WHISPER = DATA / "whisper/whisper-cli"
 WHISPER_MODEL = DATA / "whisper/ggml-whisper-base.bin"
 PIPER_RUNTIME = DATA / "piper-runtime"
 PIPER_MODEL = DATA / "piper/it_IT-paola-medium.onnx"
-SPOTIFY_PLAYER = DATA / "spotify/spotify_player"
-SPOTIFY_TOKEN = Path.home() / ".cache/spotify-player/user_client_token.json"
-SPOTIFY_BASE = [str(SPOTIFY_PLAYER), "-o", "client_port=8181"]
 
 SYSTEM_PROMPT = """Sei l'assistente locale personale dell'utente. Rispondi in italiano,
 in modo pratico e conciso. Non affermare mai di avere eseguito un'azione se non hai ricevuto
@@ -44,7 +44,7 @@ singolo JSON su una riga nel formato {"tool":"nome","args":{...}}. Strumenti dis
 - system_status: {} per stato del portatile, memoria, temperature e GPU;
 - local_time: {} per data e ora locale esatte;
 - spotify_search: {"query":"..."} per cercare e mostrare risultati Spotify;
-- spotify_play: {"query":"...","type":"track|playlist|album|artist"} per cercare e riprodurre davvero;
+- spotify_play: {"query":"...","type":"track|playlist|album|artist","device":"nome facoltativo"} per cercare e riprodurre sul dispositivo richiesto;
 - spotify_control: {"action":"play|pause|next|previous"};
 - spotify_device: {"name":"..."} per spostare l'audio su un dispositivo Connect, ad esempio Alexa;
 - set_volume: {"percent":0..100};
@@ -69,7 +69,7 @@ def run(argv: list[str], timeout: int = 15) -> tuple[int, str]:
 
 
 def response_profile(user_text: str, voice: bool = False) -> dict:
-    """Mantiene il comportamento completo, accelerando solo su richiesta esplicita."""
+    """Applica il profilo predefinito, rispettando le richieste esplicite di analisi."""
     text = re.sub(r"\s+", " ", user_text.lower()).strip()
     force_fast = re.search(
         r"\b(?:modalità rapida|risposta rapida|rispondi (?:solo|soltanto|brevemente)|"
@@ -90,7 +90,7 @@ def response_profile(user_text: str, voice: bool = False) -> dict:
             "reasoning_budget": 48 if voice else 96,
             "enable_thinking": True,
         }
-    if force_fast:
+    if force_fast or os.environ.get("LOCAL_ASSISTANT_DEFAULT_PROFILE") == "fast":
         return {
             "id": "fast", "label": "Rapida",
             "max_tokens": 96 if voice else 160,
@@ -151,7 +151,17 @@ def llama_deltas(messages: list[dict], max_tokens: int,
             "Ora formula la risposta finale in modo chiaro e conciso."
         )
     payload = json.dumps(request_data).encode()
-    req = urllib.request.Request(LLAMA_URL, payload, {"Content-Type": "application/json"})
+    headers = {"Content-Type": "application/json"}
+    key_file = os.environ.get("LOCAL_LLM_API_KEY_FILE")
+    if key_file:
+        try:
+            api_key = Path(key_file).read_text().strip()
+        except (OSError, UnicodeError):
+            raise RuntimeError("Credenziale LLM non leggibile") from None
+        if not api_key or any(ord(char) < 33 or ord(char) > 126 for char in api_key):
+            raise RuntimeError("Credenziale LLM non valida")
+        headers["Authorization"] = f"Bearer {api_key}"
+    req = urllib.request.Request(LLAMA_URL, payload, headers)
     with urllib.request.urlopen(req, timeout=180) as response:
         for raw_line in response:
             line = raw_line.decode("utf-8", "replace").strip()
@@ -282,69 +292,18 @@ def web_fetch(url: str) -> dict:
 
 
 def spotify_bus(action: str) -> dict:
-    if SPOTIFY_PLAYER.exists() and SPOTIFY_TOKEN.exists():
-        commands = {"play": "play", "pause": "pause", "next": "next", "previous": "previous"}
-        command = commands.get(action)
-        if command:
-            code, out = run([*SPOTIFY_BASE, "playback", command], timeout=45)
-            if code == 0:
-                return {"ok": True, "backend": "spotify-api", "detail": out or command}
-    shortcuts = {"play": "playmedia", "pause": "pausemedia", "next": "nextmedia",
-                 "previous": "previousmedia"}
-    shortcut = shortcuts.get(action)
-    if not shortcut:
-        return {"ok": False, "error": "azione non consentita"}
-    # KDE inoltra il tasto multimediale al player attivo. Questo percorso è
-    # compatibile con il confinamento AppArmor dello Snap ufficiale Spotify.
-    code, out = run(["qdbus6", "org.kde.kglobalaccel", "/component/mediacontrol",
-                     "org.kde.kglobalaccel.Component.invokeShortcut", shortcut])
-    return {"ok": code == 0, "detail": out or shortcut}
-
-
-def spotify_json(args: list[str], timeout: int = 60) -> tuple[int, dict | str]:
-    code, out = run([*SPOTIFY_BASE, *args], timeout=timeout)
-    if code:
-        return code, out
-    try:
-        return 0, json.loads(out)
-    except json.JSONDecodeError:
-        return 0, out
+    return SpotifyClient().control(action)
 
 
 def spotify_search(query: str) -> dict:
-    if not SPOTIFY_PLAYER.exists():
-        return {"ok": False, "error": "spotify-player non installato"}
-    if not SPOTIFY_TOKEN.exists():
-        return {"ok": False, "error": "Spotify non autenticato: completa OAuth una volta"}
-    code, result = spotify_json(["search", query])
-    if code:
-        return {"ok": False, "error": str(result)[-1500:]}
-    if not isinstance(result, dict):
-        return {"ok": True, "result": result}
-    compact = {}
-    for key in ("tracks", "playlists", "albums", "artists"):
-        values = result.get(key) or []
-        compact[key] = [{k: item.get(k) for k in ("id", "name", "artists", "owner") if k in item}
-                        for item in values[:5]]
-    return {"ok": True, "query": query, "results": compact}
+    try:
+        return {"ok": True, **SpotifyClient().search(query)}
+    except (RuntimeError, ValueError, OSError) as exc:
+        return {"ok": False, "error": str(exc)}
 
 
-def spotify_play(query: str, media_type: str) -> dict:
-    if media_type not in ("track", "playlist", "album", "artist"):
-        return {"ok": False, "error": "tipo non consentito"}
-    found = spotify_search(query)
-    if not found.get("ok"):
-        return found
-    collection = found.get("results", {}).get(media_type + "s", [])
-    if not collection:
-        return {"ok": False, "error": f"nessun {media_type} trovato", "search": found}
-    item = collection[0]
-    if media_type == "track":
-        argv = ["playback", "start", "track", "--id", item["id"]]
-    else:
-        argv = ["playback", "start", "context", media_type, "--id", item["id"]]
-    code, out = run([str(SPOTIFY_PLAYER), *argv], timeout=60)
-    return {"ok": code == 0, "selected": item, "detail": out[-1500:]}
+def spotify_play(query: str, media_type: str, device: str = "") -> dict:
+    return SpotifyClient().play(query, media_type, device)
 
 
 def audio_devices() -> dict:
@@ -355,10 +314,11 @@ def audio_devices() -> dict:
     network_lines = [line for line in network.splitlines()
                      if re.search(r"spotify|alexa|amazon|airplay|raop|cast|sonos", line, re.I)]
     spotify_devices = None
-    if SPOTIFY_PLAYER.exists() and SPOTIFY_TOKEN.exists():
-        code, spotify_devices = spotify_json(["get", "key", "devices"], timeout=45)
-        if code:
-            spotify_devices = {"error": str(spotify_devices)[-1000:]}
+    if TOKEN_FILE.exists():
+        try:
+            spotify_devices = SpotifyClient().devices()
+        except (RuntimeError, OSError) as exc:
+            spotify_devices = {"error": str(exc)}
     return {"default": default, "sinks": sinks.splitlines(),
             "bluetooth_paired": bluetooth.splitlines(), "network_audio": network_lines[:30],
             "spotify_connect": spotify_devices}
@@ -403,17 +363,15 @@ def execute_tool(name: str, args: dict) -> dict:
         return spotify_search(query)
     if name == "spotify_play":
         query = str(args.get("query", "")).strip()[:200]
-        return spotify_play(query, str(args.get("type", "track")))
+        device = str(args.get("device", "")).strip()[:120]
+        return spotify_play(query, str(args.get("type", "track")), device)
     if name == "spotify_control":
         return spotify_bus(str(args.get("action", "")))
     if name == "spotify_device":
         name = str(args.get("name", "")).strip()[:120]
         if not name:
             return {"ok": False, "error": "nome dispositivo vuoto"}
-        if not SPOTIFY_TOKEN.exists():
-            return {"ok": False, "error": "Spotify non autenticato: completa OAuth una volta"}
-        code, out = run([*SPOTIFY_BASE, "connect", "--name", name], timeout=60)
-        return {"ok": code == 0, "name": name, "detail": out[-1500:]}
+        return SpotifyClient().transfer(name)
     if name == "set_volume":
         try:
             value = max(0, min(100, int(args.get("percent"))))
@@ -580,6 +538,9 @@ def web_research(user_text: str, query: str, voice: bool) -> dict:
 
 
 def fast_voice_intent(user_text: str) -> dict | None:
+    music = spotify_combined_intent(user_text)
+    if music:
+        return music
     text = re.sub(r"[^a-zà-ÿ0-9]+", " ", user_text.lower()).strip()
     words = set(text.split())
     if "ore" in words or ({"ora", "è"} <= words):
@@ -601,6 +562,28 @@ def fast_voice_intent(user_text: str) -> dict | None:
     return None
 
 
+def spotify_combined_intent(user_text: str) -> dict | None:
+    match = re.fullmatch(
+        r"\s*(?:(?:hey|hei|ehi|ciao)\s+peppe[,!]?\s*)?"
+        r"(?:suona|riproduci|metti)\s+(.+?)\s+su\s+(.+?)\s*[.!?]?\s*",
+        user_text, re.I,
+    )
+    if not match:
+        return None
+    query = match.group(1).strip().strip("'\"“”‘’ ")
+    device = match.group(2).strip().strip("'\"“”‘’ .!?")
+    if device.casefold() == "spotify":
+        return None
+    result = execute_tool("spotify_play", {"query": query, "type": "track", "device": device})
+    if result.get("ok"):
+        answer = f"Sto riproducendo {result.get('selected', {}).get('name', query)} su {device}."
+    elif result.get("pending"):
+        answer = f"Ho inviato la richiesta a Spotify, ma non riesco ancora a verificare la riproduzione su {device}."
+    else:
+        answer = f"Non sono riuscito a riprodurre su {device}: {result.get('error', 'errore Spotify')}."
+    return {"answer": answer, "tools": [{"tool": "spotify_play", "result": result}]}
+
+
 def chat(user_text: str, history: list[dict], voice: bool = False, emit=None) -> dict:
     started = time.monotonic()
     profile = response_profile(user_text, voice)
@@ -612,6 +595,10 @@ def chat(user_text: str, history: list[dict], voice: bool = False, emit=None) ->
         print(f"chat profile={profile['id']} elapsed_ms={result['elapsed_ms']} "
               f"tools={len(result.get('tools') or [])}", flush=True)
         return result
+
+    music = spotify_combined_intent(user_text)
+    if music:
+        return finish(music)
 
     research = research_query(user_text)
     if research:
@@ -757,14 +744,13 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/health":
             llm_ok = False
             try:
-                with urllib.request.urlopen("http://127.0.0.1:8080/health", timeout=3) as response:
+                with urllib.request.urlopen(LLM_HEALTH_URL, timeout=3) as response:
                     llm_ok = response.status == 200
             except Exception:
                 pass
             components = {"llm": llm_ok, "whisper": WHISPER.exists(),
                           "piper": (PIPER_RUNTIME / "piper").exists(),
-                          "spotify_player": SPOTIFY_PLAYER.exists(),
-                          "spotify_authenticated": SPOTIFY_TOKEN.exists(),
+                          "spotify_authenticated": TOKEN_FILE.exists(),
                           "tailscale": shutil.which("tailscale") is not None}
             self.json_response({"status": "ok" if all((llm_ok, components["whisper"],
                                                         components["piper"])) else "degraded",
