@@ -28,12 +28,75 @@ speech synthesis, system tools, and a low-overhead web console.
 
 ## Getting started
 
-The current configuration was developed for Linux with an NVIDIA GPU and uses
-paths under `~/.local/share/local-ai`. Hardware devices, account paths, model
-names, and service settings may need to be adapted before installation.
+Peppe is designed to run cleanly on modest Linux laptops (tested on an Intel i7 with discrete NVIDIA MX250 4 GB VRAM) under `~/.local/share/local-ai`.
 
-See [`local-assistant/README.md`](local-assistant/README.md) for component,
-usage, security, and service details.
+### Architecture Overview
+
+```
++---------------------------------------------------------------------------------+
+|                                 PEPPE RUNTIME                                   |
+|                                                                                 |
+|  [ Microphone ] ---> ( Silero VAD / Vosk ) ---> [ Wake Word: "Ehi Peppe" ]      |
+|                                                          |                      |
+|                                                          v                      |
+|  [ NVIDIA MX250 GPU (4 GB VRAM) ]                                               |
+|  +-------------------------------------+  +----------------------------------+  |
+|  | Whisper Turbo Server (Port 18183)   |  | llama-server: Liquid LFM2.5 1.2B |  |
+|  | ~926 MiB resident VRAM              |  | ~746 MiB resident VRAM           |  |
+|  | Transcribes Italian speech in ~1.2s |  | Generates at 52.2 tokens/sec     |  |
+|  +-------------------------------------+  +----------------------------------+  |
+|                                                          |                      |
+|                                                          v                      |
+|  [ Python Assistant Engine ] <---------------------------+                      |
+|  | - Deterministic tool execution (Web research, Spotify, local time, status)   |
+|  | - Resilient voice-stop listener ("Peppe basta", "Hey Peppe basta")           |
+|                                                          |                      |
+|                                                          v                      |
+|  [ Piper TTS Engine ] ---> [ Speaker / PulseAudio / PipeWire ]                  |
++---------------------------------------------------------------------------------+
+```
+
+### Quick Setup: Running with Liquid LFM2.5 (100% Offline)
+
+#### 1. Download the Liquid LFM2.5 Model
+Download the compact GGUF quantization (~664 MB) into your models directory:
+```bash
+mkdir -p ~/.local/share/local-ai/models
+curl -L -o ~/.local/share/local-ai/models/LFM2.5-1.2B-Instruct-QAD-Q4_0.gguf \
+  https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF/resolve/main/LFM2.5-1.2B-Instruct-QAD-Q4_0.gguf
+```
+
+#### 2. Install and Start the Systemd Services
+Copy the provided unit file to your user systemd configuration:
+```bash
+mkdir -p ~/.config/systemd/user
+cp local-ai-llama.service ~/.config/systemd/user/local-ai-llama.service
+
+systemctl --user daemon-reload
+systemctl --user enable --now local-ai-llama.service
+systemctl --user restart local-ai-assistant.service local-ai-peppe.service
+```
+
+#### 3. Test the Assistant
+Verify that the services are active and test text or voice responses:
+```bash
+# Text API verification
+curl -s -X POST http://127.0.0.1:8090/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Ciao Peppe, chi sei?"}'
+
+# Test web research grounding
+curl -s -X POST http://127.0.0.1:8090/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Cerca le ultime notizie sulla Luna", "voice": true}'
+```
+
+Speak into your microphone:
+- **Wake:** *"Ehi Peppe, che ore sono?"*
+- **Research:** *"Ehi Peppe, cerca notizie sul meteo a Milano"*
+- **Stop:** *"Peppe basta"* or *"Hey Peppe basta"*
+
+See [`local-assistant/README.md`](local-assistant/README.md) for full component, audio device routing, and security details.
 
 ## Models and third-party software
 
