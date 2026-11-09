@@ -68,8 +68,13 @@ def has_wake(text: str) -> bool:
 
 def is_stop(text: str) -> bool:
     words = normalize(text).split()
-    return any(words[i] in WAKE_VARIANTS and words[i + 1] in {"basta", "stop", "fine"}
-               for i in range(len(words) - 1))
+    stop_words = {"basta", "stop", "fine"}
+    if any(w in stop_words for w in words):
+        if any(w in WAKE_VARIANTS or "pep" in w or "bep" in w or "per" in w for w in words):
+            return True
+        if len(words) <= 3:
+            return True
+    return False
 
 
 def strip_wake(text: str) -> str:

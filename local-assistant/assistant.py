@@ -612,6 +612,12 @@ def chat(user_text: str, history: list[dict], voice: bool = False, emit=None) ->
             })
     browser_search = browser_search_intent(user_text)
     if browser_search:
+        if voice:
+            q = explicit_search_query(user_text) or user_text
+            try:
+                return finish(web_research(user_text, q, voice))
+            except Exception:
+                pass
         return finish(browser_search)
     if voice:
         immediate = fast_voice_intent(user_text)
